@@ -1,5 +1,6 @@
 import org.junit.Rule;
 import org.junit.Test;
+import static junit.framework.Assert.assertTrue;
 import static junit.framework.Assert.assertEquals;
 import org.junit.rules.TemporaryFolder;
 
@@ -9,6 +10,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 
 public class ClientTest {
@@ -29,7 +32,7 @@ public class ClientTest {
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
-        new DataOutputStream(new FileOutputStream(file)).writeUTF(text);
+        new DataOutputStream(new FileOutputStream(file)).write(text);
     }
 
     @org.junit.Before
@@ -67,7 +70,18 @@ public class ClientTest {
     }
 
     @Test
-    public void testGetRequest() {
+    public void testNewFileAndList() throws IOException, InterruptedException {
+        client1.list(TRACKER_ADDR);
+        client1.newfile(TRACKER_ADDR, file.getPath());
+
+        TimeUnit.SECONDS.sleep(5);
+
+        client1.list(TRACKER_ADDR);
+    }
+
+    @Test
+    public void testGetRequest() throws IOException {
+        int id = client1.newfile(TRACKER_ADDR, file.getPath());
         client2.get(TRACKER_ADDR, "0"); // a fake id, but we don't care
     }
 
@@ -77,20 +91,24 @@ public class ClientTest {
         int id = client1.newfile(TRACKER_ADDR, file.getPath());
         client2.get(TRACKER_ADDR, Integer.toString(id));
 
+        TimeUnit.SECONDS.sleep(5);
+
         client1.run(TRACKER_ADDR);
         client2.run(TRACKER_ADDR);
 
-        client1.stop();
-        client2.stop();
+        TimeUnit.SECONDS.sleep(5);
 
         byte[][] contents1 = client1.getFileContents(id);
         byte[][] contents2 = client2.getFileContents(id);
 
-        assertEquals(contents1, contents2);
+        assertTrue(contents1[0][0] == contents2[0][0]);
+        assertEquals(Arrays.toString(contents1[0]), Arrays.toString(contents2[0]));
     }
 
-    private static final String text =
-            " Forms FORM-29827281-12:\n" +
+    //private static final byte[] text = {0};
+    //private static final byte[] text = "Hello".getBytes();
+    private static final byte[] text =
+            (" Forms FORM-29827281-12:\n" +
                     "Test Assessment Report\n" +
                     "\n" +
                     "This was a triumph.\n" +
@@ -176,5 +194,5 @@ public class ClientTest {
                     "\n" +
                     "Still alive.\n" +
                     "\n" +
-                    "\n";
+                    "\n").getBytes();
 }

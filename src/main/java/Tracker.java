@@ -14,6 +14,7 @@ public class Tracker {
     public static final byte UPLOAD = 2;
     public static final byte SOURCES = 3;
     public static final byte UPDATE = 4;
+    public static final byte OTHER = 5;
     public static final Integer PORT = 8081;
     public static final int TIMEOUT = 60000;
     public static final String CONFIG_FILE = "./configTracker";
@@ -202,9 +203,12 @@ public class Tracker {
         long size = input.readLong();
         int id = new UUID(0, 0).hashCode();
         FileDescr fd = new FileDescr(id, name, size);
+        files.add(fd);
+
+        LOG.info("Upload handler -- read data: name=" + name + " size=" + Long.toString(size));
 
         InetAddress clientAddr = clientSocket.getInetAddress();
-        int port = (int)clientSocket.getPort();
+        int port = clientSocket.getPort();
         ClientDescriptor client = clients.get(clientAddr);//.get(port);
         if(client != null) {
             client.setLastUpdated(System.currentTimeMillis());
@@ -216,6 +220,9 @@ public class Tracker {
         ArrayList<ClientDescriptor> tmp = new ArrayList<>();
         tmp.add(client);
         seeds.put(fd.getId(), tmp);
+
+        output.writeInt(id);
+        output.flush();
     }
 
     // sources request
@@ -295,6 +302,17 @@ public class Tracker {
                 sources(input, output);
             } else if (requestType == UPDATE) {
                 update(clientSocket, input, output);
+            } else {
+                int id = input.readInt();
+                for(FileDescr file: files) {
+                    if(file.getId() == id) {
+                        long size = file.getSize();
+                        output.writeLong(size);
+                        output.writeUTF(file.getName());
+                        break;
+                    }
+                }
+                output.flush();
             }
         } catch (IOException e) {
             LOG.info(e.getMessage());

@@ -300,7 +300,7 @@ public class Client {
         output.writeByte(Tracker.LIST);
         output.flush();
 
-        LOG.info("LIST request");
+        LOG.info("LIST requested");
 
         int count = input.readInt();
         LOG.info("count: " + Integer.toString(count));
@@ -328,7 +328,7 @@ public class Client {
         output.writeLong(size);
         output.flush();
 
-        LOG.info("NEWFILE request: ");
+        LOG.info("NEWFILE requested: name=" + path + " size=" + Long.toString(size));
 
         int id = input.readInt();
         LOG.info("id: " + Integer.toString(id));
@@ -343,7 +343,26 @@ public class Client {
 
     // get command
     public void get(String trackerAddress, String fileId) {
-        wishList.add(new FileRequest(Integer.parseInt(fileId)));
+        int id = Integer.parseInt(fileId);
+        wishList.add(new FileRequest(id));
+
+        try (
+            Socket client = new Socket(trackerAddress, Tracker.PORT);
+            DataInputStream input = new DataInputStream(client.getInputStream());
+            DataOutputStream output = new DataOutputStream(client.getOutputStream())
+        ) {
+            output.writeByte(Tracker.OTHER);
+            output.writeInt(id);
+            output.flush();
+
+            long size = input.readLong();
+            String path = input.readUTF();
+            ownedFiles.put(Integer.parseInt(fileId), new FileContents(path, size));
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
 
@@ -373,14 +392,21 @@ public class Client {
             if (!running) {
                 return;
             }
-            clientsServer.stop();
             updater.stop();
             threadPool.shutdown();
+            clientsServer.stop();
         }
     }
 
     private boolean fullyDownloaded(FileRequest fr) {
-        for(byte[] part: ownedFiles.get(fr.getId()).getContents()) {
+        if(ownedFiles == null || ownedFiles.size() == 0) {
+            return true;
+        }
+        FileContents fc = ownedFiles.get(fr.getId());
+        if(fc == null) {
+            return false;
+        }
+        for(byte[] part: fc.getContents()) {
             if(part == null) {
                 return false;
             }
@@ -409,7 +435,9 @@ public class Client {
                     return;
                 }
                 port = input.readInt();
+                LOG.info("Downloading: try to get the file parts");
                 tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
+                LOG.info("Downloading: proceeding to the next in the SOURCES");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -430,10 +458,12 @@ public class Client {
             output.flush();
 
             int count = input.readInt();
+            LOG.info("In tryToGet: count=" + Integer.toString(count));
             synchronized(this) {
                 for (int i = 0; i < count; i++) {
                     int partId = input.readInt();
                     if (ownedFiles.get(id).getContents()[partId] == null) {
+                        LOG.info("In tryToGet: matched a part");
                         ownedFiles.get(id).getContents()[partId] = new byte[0];
                         threadPool.submit((Runnable) () -> {
                             try {
@@ -457,6 +487,8 @@ public class Client {
         output.writeInt(id);
         output.writeInt(partId);
         output.flush();
+
+        LOG.info("Getting the part");
 
         byte[] result = new byte[PART_SIZE];
         if(input.read(result) == -1) {
