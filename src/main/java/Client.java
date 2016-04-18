@@ -202,7 +202,7 @@ public class Client {
                 executorService.scheduleAtFixedRate(() -> {
                     try {
                         output.writeByte(Tracker.UPDATE);
-                        output.writeShort((short)client.getPort());
+                        output.writeInt((int)client.getPort());
                         output.writeInt(ownedFiles.size());
                         for(Map.Entry entry: ownedFiles.entrySet()) {
                             output.writeInt((int)entry.getKey());
@@ -403,12 +403,12 @@ public class Client {
             int count = input.readInt();
             for(int i = 0; i < count; i++) {
                 byte[] addr = new byte[4];
-                short port;
+                int port;
                 if(input.read(addr) != 4) {
                     LOG.warning("Wrong addr format in sources request");
                     return;
                 }
-                port = input.readShort();
+                port = input.readInt();
                 tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
             }
         } catch (IOException e) {
@@ -416,7 +416,7 @@ public class Client {
         }
     }
 
-    private void tryToGet(int id, String hostAddr, short port) {
+    private void tryToGet(int id, String hostAddr, int port) {
         Socket client;
         DataInputStream input;
         DataOutputStream output;

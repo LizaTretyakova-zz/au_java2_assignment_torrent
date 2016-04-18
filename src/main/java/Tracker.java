@@ -49,11 +49,11 @@ public class Tracker {
     // client description: id, IP, port, time of last update
     public class ClientDescriptor {
         private InetAddress addr;
-        private short port;
+        private int port;
         private long lastUpdated;
         private UUID id;
 
-        public ClientDescriptor(InetAddress addr, short port, long lastUpdated) {
+        public ClientDescriptor(InetAddress addr, int port, long lastUpdated) {
             this.addr = addr;
             this.port = port;
             this.lastUpdated = lastUpdated;
@@ -64,7 +64,7 @@ public class Tracker {
             return lastUpdated;
         }
 
-        public short getPort() {
+        public int getPort() {
             return port;
         }
 
@@ -106,7 +106,7 @@ public class Tracker {
                     if(src.read(addr) != 4) {
                         LOG.warning("Incorrect address of a seed, fileId: " + Integer.toString(fileId));
                     }
-                    short port = src.readShort();
+                    int port = src.readInt();
                     long lastUpdated = src.readLong();
                     ClientDescriptor client = new ClientDescriptor(
                             InetAddress.getByAddress(addr),
@@ -140,8 +140,10 @@ public class Tracker {
         serverSocket = new ServerSocket(PORT);
         threadPool.submit(() -> {
             while (!Thread.interrupted()) {
+                LOG.info("New loop");
                 try {
                     Socket clientSocket = serverSocket.accept();
+                    LOG.info("Client accepted: " + clientSocket.toString());
                     threadPool.submit((Runnable) () -> {
                         try {
                             processClient(clientSocket);
@@ -152,7 +154,7 @@ public class Tracker {
                         }
                     });
                 } catch (IOException e) {
-                    Logger.getAnonymousLogger().info("Connection closed");
+                    LOG.info("Connection closed");
                 }
             }
 
@@ -175,7 +177,7 @@ public class Tracker {
             output.writeInt(fileSeeds.size());
             for(ClientDescriptor seed: fileSeeds) {
                 output.write(seed.getAddr().getAddress());
-                output.writeShort(seed.getPort());
+                output.writeInt(seed.getPort());
                 output.writeLong(seed.getLastUpdated());
             }
 
@@ -202,7 +204,7 @@ public class Tracker {
         FileDescr fd = new FileDescr(id, name, size);
 
         InetAddress clientAddr = clientSocket.getInetAddress();
-        short port = (short)clientSocket.getPort();
+        int port = (int)clientSocket.getPort();
         ClientDescriptor client = clients.get(clientAddr);//.get(port);
         if(client != null) {
             client.setLastUpdated(System.currentTimeMillis());
@@ -222,7 +224,7 @@ public class Tracker {
         ArrayList<ClientDescriptor> fileSeeds = seeds.get(id);
         if(fileSeeds == null) {
             //throw new RuntimeException("Wrong file id!");
-            Logger.getAnonymousLogger().warning("Wring file id!");
+            LOG.warning("Wring file id!");
             return;
         }
         for(Iterator<ClientDescriptor> it = fileSeeds.iterator();
@@ -244,7 +246,7 @@ public class Tracker {
     // update request
     private void update(Socket clientSocket, DataInputStream input, DataOutputStream output) throws IOException {
         try {
-            short seed_port = input.readShort();
+            int seed_port = input.readInt();
             int count = input.readInt();
             for (int i = 0; i < count; i++) {
                 int id = input.readInt();
@@ -295,7 +297,7 @@ public class Tracker {
                 update(clientSocket, input, output);
             }
         } catch (IOException e) {
-            Logger.getAnonymousLogger().info(e.getMessage());
+            LOG.info(e.getMessage());
             throw new RuntimeException(e);
         }
     }

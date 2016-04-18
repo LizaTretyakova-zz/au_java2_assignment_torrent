@@ -13,6 +13,8 @@ import java.nio.file.Paths;
 
 public class ClientTest {
 
+    private static final String TRACKER_ADDR = "127.0.0.1";
+
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
@@ -52,14 +54,31 @@ public class ClientTest {
     }
 
     @Test
-    public void testConnection() throws IOException, InterruptedException {
-        String trackerAddr = "127.0.0.1";
-        client1.list(trackerAddr);
-        int id = client1.newfile(trackerAddr, file.getPath());
-        client2.get(trackerAddr, Integer.toString(id));
+    public void testIdle() {}
 
-        client1.run(trackerAddr);
-        client2.run(trackerAddr);
+    @Test
+    public void testListRequest() throws IOException {
+        client1.list(TRACKER_ADDR);
+    }
+
+    @Test
+    public void testNewfileRequest() throws IOException {
+        client2.newfile(TRACKER_ADDR, file.getPath());
+    }
+
+    @Test
+    public void testGetRequest() {
+        client2.get(TRACKER_ADDR, "0"); // a fake id, but we don't care
+    }
+
+    @Test
+    public void testConnection() throws IOException, InterruptedException {
+
+        int id = client1.newfile(TRACKER_ADDR, file.getPath());
+        client2.get(TRACKER_ADDR, Integer.toString(id));
+
+        client1.run(TRACKER_ADDR);
+        client2.run(TRACKER_ADDR);
 
         client1.stop();
         client2.stop();
