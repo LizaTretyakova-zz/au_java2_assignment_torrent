@@ -17,97 +17,10 @@ import java.util.concurrent.TimeUnit;
 public class ClientTest {
 
     private static final String TRACKER_ADDR = "127.0.0.1";
-
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
-
-    private Tracker tracker = null;
-    private Client client1 = null;
-    private Client client2 = null;
-    private File file = null;
-
-    private void fillTempDir() throws IOException {
-        try {
-            file = folder.newFile();
-        } catch (IOException e) {
-            throw new RuntimeException(e.getMessage(), e);
-        }
-        new DataOutputStream(new FileOutputStream(file)).write(text);
-    }
-
-    @org.junit.Before
-    public void setUp() throws Exception {
-        fillTempDir();
-        Files.deleteIfExists(Paths.get(Tracker.CONFIG_FILE));
-        Files.deleteIfExists(Paths.get("./" + Client.CONFIG_FILE));
-        Files.deleteIfExists(Paths.get(folder.getRoot().getPath() + Client.CONFIG_FILE));
-        tracker = new Tracker();
-        tracker.startTracker();
-        client1 = new Client(folder.getRoot().getPath());
-        client2 = new Client("./");
-    }
-
-    @org.junit.After
-    public void tearDown() throws Exception {
-        Files.deleteIfExists(Paths.get(Tracker.CONFIG_FILE));
-
-        tracker.stopTracker();
-        client1.stop();
-        client2.stop();
-    }
-
-    @Test
-    public void testIdle() {}
-
-    @Test
-    public void testListRequest() throws IOException {
-        client1.list(TRACKER_ADDR);
-    }
-
-    @Test
-    public void testNewfileRequest() throws IOException {
-        client2.newfile(TRACKER_ADDR, file.getPath());
-    }
-
-    @Test
-    public void testNewFileAndList() throws IOException, InterruptedException {
-        client1.list(TRACKER_ADDR);
-        client1.newfile(TRACKER_ADDR, file.getPath());
-
-        TimeUnit.SECONDS.sleep(5);
-
-        client1.list(TRACKER_ADDR);
-    }
-
-    @Test
-    public void testGetRequest() throws IOException {
-        int id = client1.newfile(TRACKER_ADDR, file.getPath());
-        client2.get(TRACKER_ADDR, "0"); // a fake id, but we don't care
-    }
-
-    @Test
-    public void testConnection() throws IOException, InterruptedException {
-
-        int id = client1.newfile(TRACKER_ADDR, file.getPath());
-        client2.get(TRACKER_ADDR, Integer.toString(id));
-
-        TimeUnit.SECONDS.sleep(5);
-
-        client1.run(TRACKER_ADDR);
-        client2.run(TRACKER_ADDR);
-
-        TimeUnit.SECONDS.sleep(5);
-
-        byte[][] contents1 = client1.getFileContents(id);
-        byte[][] contents2 = client2.getFileContents(id);
-
-        assertTrue(contents1[0][0] == contents2[0][0]);
-        assertEquals(Arrays.toString(contents1[0]), Arrays.toString(contents2[0]));
-    }
-
-    //private static final byte[] text = {0};
-    //private static final byte[] text = "Hello".getBytes();
-    private static final byte[] text =
+    private static final int MAGIC_WAIT_TIME = 5;
+    //private static final byte[] TEXT = {0};
+    //private static final byte[] TEXT = "Hello".getBytes();
+    private static final byte[] TEXT =
             (" Forms FORM-29827281-12:\n" +
                     "Test Assessment Report\n" +
                     "\n" +
@@ -195,4 +108,92 @@ public class ClientTest {
                     "Still alive.\n" +
                     "\n" +
                     "\n").getBytes();
+
+    @Rule
+    public TemporaryFolder folder = new TemporaryFolder();
+
+    private Tracker tracker = null;
+    private Client client1 = null;
+    private Client client2 = null;
+    private File file = null;
+
+    private void fillTempDir() throws IOException {
+        try {
+            file = folder.newFile();
+        } catch (IOException e) {
+            throw new RuntimeException(e.getMessage(), e);
+        }
+        new DataOutputStream(new FileOutputStream(file)).write(TEXT);
+    }
+
+    @org.junit.Before
+    public void setUp() throws Exception {
+        fillTempDir();
+        Files.deleteIfExists(Paths.get(Tracker.CONFIG_FILE));
+        Files.deleteIfExists(Paths.get("./" + Client.CONFIG_FILE));
+        Files.deleteIfExists(Paths.get(folder.getRoot().getPath() + Client.CONFIG_FILE));
+        tracker = new Tracker();
+        tracker.startTracker();
+        client1 = new Client(folder.getRoot().getPath());
+        client2 = new Client("./");
+    }
+
+    @org.junit.After
+    public void tearDown() throws Exception {
+        Files.deleteIfExists(Paths.get(Tracker.CONFIG_FILE));
+
+        tracker.stopTracker();
+        client1.stop();
+        client2.stop();
+    }
+
+    @Test
+    public void testIdle() {}
+
+    @Test
+    public void testListRequest() throws IOException {
+        client1.list(TRACKER_ADDR);
+    }
+
+    @Test
+    public void testNewfileRequest() throws IOException {
+        client2.newfile(TRACKER_ADDR, file.getPath());
+    }
+
+    @Test
+    public void testNewFileAndList() throws IOException, InterruptedException {
+        client1.list(TRACKER_ADDR);
+        client1.newfile(TRACKER_ADDR, file.getPath());
+
+        TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
+
+        client1.list(TRACKER_ADDR);
+    }
+
+    @Test
+    public void testGetRequest() throws IOException {
+        int id = client1.newfile(TRACKER_ADDR, file.getPath());
+        client2.get(TRACKER_ADDR, Integer.toString(id)); // a fake id, but we don't care
+    }
+
+    @Test
+    public void testConnection() throws IOException, InterruptedException {
+
+        int id = client1.newfile(TRACKER_ADDR, file.getPath());
+        client2.get(TRACKER_ADDR, Integer.toString(id));
+
+        TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
+
+        client1.run(TRACKER_ADDR);
+        client2.run(TRACKER_ADDR);
+
+        TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
+
+        byte[][] contents1 = client1.getFileContents(id);
+        byte[][] contents2 = client2.getFileContents(id);
+
+        assertTrue(contents1[0][0] == contents2[0][0]);
+        assertEquals(Arrays.toString(contents1[0]), Arrays.toString(contents2[0]));
+    }
+
 }
