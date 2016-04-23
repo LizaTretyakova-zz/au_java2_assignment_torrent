@@ -173,7 +173,7 @@ public class ClientTest {
     @Test
     public void testGetRequest() throws IOException {
         int id = client1.newfile(TRACKER_ADDR, file.getPath());
-        client2.get(TRACKER_ADDR, Integer.toString(id)); // a fake id, but we don't care
+        client2.get(TRACKER_ADDR, Integer.toString(id));
     }
 
     @Test

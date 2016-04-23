@@ -30,6 +30,63 @@ public class Tracker {
     private ServerSocket serverSocket;
     private ExecutorService threadPool = Executors.newCachedThreadPool();
 
+    // file description: id, name and size
+    public static class FileDescr {
+
+        private int id;
+        private String name;
+        private long size;
+
+        public FileDescr(int id, String name, long size) {
+            this.id = id;
+            this.name = name;
+            this.size = size;
+        }
+
+        public int getId() {
+            return id;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public long getSize() {
+            return size;
+        }
+    }
+
+    // client description: id, IP, port, time of last update
+    public class ClientDescriptor {
+        private InetAddress addr;
+        private int port;
+        private long lastUpdated;
+        private UUID id;
+
+        public ClientDescriptor(InetAddress addr, int port, long lastUpdated) {
+            this.addr = addr;
+            this.port = port;
+            this.lastUpdated = lastUpdated;
+            id = new UUID(0, 0);
+        }
+
+        public long getLastUpdated() {
+            return lastUpdated;
+        }
+
+        public void setLastUpdated(long lastUpdated) {
+            this.lastUpdated = lastUpdated;
+        }
+
+        public int getPort() {
+            return port;
+        }
+
+        public InetAddress getAddr() {
+            return addr;
+        }
+    }
+
 
     public Tracker() {
         try (DataInputStream src = new DataInputStream(new FileInputStream(CONFIG_FILE))) {
@@ -270,62 +327,5 @@ public class Tracker {
     public void stopTracker() throws IOException {
         serverSocket.close();
         threadPool.shutdown();
-    }
-
-    // file description: id, name and size
-    public static class FileDescr {
-
-        private int id;
-        private String name;
-        private long size;
-
-        public FileDescr(int id, String name, long size) {
-            this.id = id;
-            this.name = name;
-            this.size = size;
-        }
-
-        public int getId() {
-            return id;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public long getSize() {
-            return size;
-        }
-    }
-
-    // client description: id, IP, port, time of last update
-    public class ClientDescriptor {
-        private InetAddress addr;
-        private int port;
-        private long lastUpdated;
-        private UUID id;
-
-        public ClientDescriptor(InetAddress addr, int port, long lastUpdated) {
-            this.addr = addr;
-            this.port = port;
-            this.lastUpdated = lastUpdated;
-            id = new UUID(0, 0);
-        }
-
-        public long getLastUpdated() {
-            return lastUpdated;
-        }
-
-        public void setLastUpdated(long lastUpdated) {
-            this.lastUpdated = lastUpdated;
-        }
-
-        public int getPort() {
-            return port;
-        }
-
-        public InetAddress getAddr() {
-            return addr;
-        }
     }
 }

@@ -34,6 +34,49 @@ public class Client {
     // list of files we have
     private HashMap<Integer, FileContents> ownedFiles = new HashMap<>();
 
+    // file description with contents splitted into byte arrays
+    public class FileContents {
+        private String path;
+        private byte[][] contents;
+
+        public FileContents(String path, long size) throws IOException {
+            this.path = path;
+            contents = new byte[(int) ((size + PART_SIZE - 1) / PART_SIZE)][];
+
+            DataInputStream file = new DataInputStream(new FileInputStream(path));
+            for (int i = 0; i < contents.length; i++) {
+                contents[i] = new byte[PART_SIZE];
+                file.read(contents[i]);
+            }
+
+        }
+
+        public String getPath() {
+            return path;
+        }
+
+        public int getContentsSize() {
+            return contents.length;
+        }
+
+        public byte[][] getContents() {
+            return contents;
+        }
+    }
+
+    // a description of a file we will download in a time: id & tracker address
+    public class FileRequest {
+        private int id;
+
+        public FileRequest(int id) {
+            this.id = id;
+        }
+
+        public int getId() {
+            return id;
+        }
+    }
+
     public Client(String dirPath) {
         try (DataInputStream src = new DataInputStream(new FileInputStream(dirPath + CONFIG_FILE))) {
             int wishListSize = src.readInt();
@@ -78,25 +121,6 @@ public class Client {
             return null;
         }
         return tmp.getContents();
-    }
-
-    public void store() {
-        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(CONFIG_FILE))) {
-            output.writeInt(wishList.size());
-            for (int i = 0; i < wishList.size(); i++) {
-                output.writeInt(wishList.get(i).getId());
-            }
-            output.writeInt(ownedFiles.size());
-            for (Map.Entry entry : ownedFiles.entrySet()) {
-                String path = ((FileContents) entry.getValue()).getPath();
-                output.writeUTF(path);
-                output.writeLong(new File(path).length());
-                output.writeInt((Integer) entry.getKey());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
     }
 
     // list command
@@ -205,6 +229,25 @@ public class Client {
         }
     }
 
+    private void store() {
+        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(CONFIG_FILE))) {
+            output.writeInt(wishList.size());
+            for (int i = 0; i < wishList.size(); i++) {
+                output.writeInt(wishList.get(i).getId());
+            }
+            output.writeInt(ownedFiles.size());
+            for (Map.Entry entry : ownedFiles.entrySet()) {
+                String path = ((FileContents) entry.getValue()).getPath();
+                output.writeUTF(path);
+                output.writeLong(new File(path).length());
+                output.writeInt((Integer) entry.getKey());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+    }
+
     private boolean fullyDownloaded(FileRequest fr) {
         if (ownedFiles == null || ownedFiles.size() == 0) {
             return true;
@@ -304,46 +347,46 @@ public class Client {
         return result;
     }
 
-    // file description with contents splitted into byte arrays
-    public class FileContents {
-        private String path;
-        private byte[][] contents;
+    // remind tracker about our existence
+    private class Updater {
+        private ScheduledExecutorService executorService = null;
+        private Socket client;
+        private DataInputStream input;
+        private DataOutputStream output;
 
-        public FileContents(String path, long size) throws IOException {
-            this.path = path;
-            contents = new byte[(int) ((size + PART_SIZE - 1) / PART_SIZE)][];
+        Updater(String trackerAddr) {
+            executorService = Executors.newSingleThreadScheduledExecutor();
 
-            DataInputStream file = new DataInputStream(new FileInputStream(path));
-            for (int i = 0; i < contents.length; i++) {
-                contents[i] = new byte[PART_SIZE];
-                file.read(contents[i]);
+            try {
+                client = new Socket(trackerAddr, Tracker.PORT);
+                input = new DataInputStream(client.getInputStream());
+                output = new DataOutputStream(client.getOutputStream());
+
+                executorService.scheduleAtFixedRate(() -> {
+                    try {
+                        output.writeByte(Tracker.UPDATE);
+                        output.writeInt((int) client.getPort());
+                        output.writeInt(ownedFiles.size());
+                        for (Map.Entry entry : ownedFiles.entrySet()) {
+                            output.writeInt((int) entry.getKey());
+                        }
+                        output.flush();
+                        boolean succeed = input.readBoolean();
+
+                        logger.info("Update success: " + Boolean.toString(succeed));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }, 0, TIMEOUT, TimeUnit.MILLISECONDS);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
             }
-
         }
 
-        public String getPath() {
-            return path;
-        }
-
-        public int getContentsSize() {
-            return contents.length;
-        }
-
-        public byte[][] getContents() {
-            return contents;
-        }
-    }
-
-    // a description of a file we will download in a time: id & tracker address
-    public class FileRequest {
-        private int id;
-
-        public FileRequest(int id) {
-            this.id = id;
-        }
-
-        public int getId() {
-            return id;
+        public void stop() {
+            executorService.shutdown();
         }
     }
 
@@ -457,49 +500,6 @@ public class Client {
             output.write(content);
             output.flush();
             logger.info("File contents sent");
-        }
-    }
-
-    // remind tracker about our existence
-    private class Updater {
-        private ScheduledExecutorService executorService = null;
-        private Socket client;
-        private DataInputStream input;
-        private DataOutputStream output;
-
-        Updater(String trackerAddr) {
-            executorService = Executors.newSingleThreadScheduledExecutor();
-
-            try {
-                client = new Socket(trackerAddr, Tracker.PORT);
-                input = new DataInputStream(client.getInputStream());
-                output = new DataOutputStream(client.getOutputStream());
-
-                executorService.scheduleAtFixedRate(() -> {
-                    try {
-                        output.writeByte(Tracker.UPDATE);
-                        output.writeInt((int) client.getPort());
-                        output.writeInt(ownedFiles.size());
-                        for (Map.Entry entry : ownedFiles.entrySet()) {
-                            output.writeInt((int) entry.getKey());
-                        }
-                        output.flush();
-                        boolean succeed = input.readBoolean();
-
-                        logger.info("Update success: " + Boolean.toString(succeed));
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }, 0, TIMEOUT, TimeUnit.MILLISECONDS);
-
-            } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        }
-
-        public void stop() {
-            executorService.shutdown();
         }
     }
 }
