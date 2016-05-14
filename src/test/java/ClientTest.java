@@ -152,34 +152,34 @@ public class ClientTest {
 
     @Test
     public void testListRequest() throws IOException {
-        client1.list(TRACKER_ADDR);
+        ClientConsoleUtils.list(TRACKER_ADDR);
     }
 
     @Test
     public void testNewfileRequest() throws IOException {
-        client2.newfile(TRACKER_ADDR, file.getPath());
+        ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
     }
 
     @Test
     public void testNewFileAndList() throws IOException, InterruptedException {
-        client1.list(TRACKER_ADDR);
-        client1.newfile(TRACKER_ADDR, file.getPath());
+        ClientConsoleUtils.list(TRACKER_ADDR);
+        ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
 
         TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
 
-        client1.list(TRACKER_ADDR);
+        ClientConsoleUtils.list(TRACKER_ADDR);
     }
 
     @Test
     public void testGetRequest() throws IOException {
-        int id = client1.newfile(TRACKER_ADDR, file.getPath());
+        int id = ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
         client2.get(TRACKER_ADDR, Integer.toString(id));
     }
 
     @Test
     public void testConnection() throws IOException, InterruptedException {
 
-        int id = client1.newfile(TRACKER_ADDR, file.getPath());
+        int id = ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
         client2.get(TRACKER_ADDR, Integer.toString(id));
 
         TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
