@@ -3,14 +3,13 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.logging.Logger;
 
 public class Client {
@@ -23,20 +22,22 @@ public class Client {
     public static final int IP_LEN = 4;
     public static final int TIMEOUT = 3 * Tracker.TIMEOUT / 4;
 
-    private final Logger logger = Logger.getLogger("CLIENT");
+    private static final Logger logger = Logger.getLogger("CLIENT");
+    private static final Timer timer = new Timer();
     // thread pool
-    private ExecutorService threadPool = Executors.newCachedThreadPool();
+    private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private ClientsServer clientsServer = null;
     private Updater updater = null;
     private Boolean running = false;
     // list of files we need to download
-    private ArrayList<FileRequest> wishList = new ArrayList<>();
+    private final ArrayList<FileRequest> wishList = new ArrayList<>();
     // list of files we have
-    private HashMap<Integer, FileContents> ownedFiles = new HashMap<>();
+    private final HashMap<Integer, FileContents> ownedFiles = new HashMap<>();
 
     // file description with contents splitted into byte arrays
     public class FileContents {
         private String path;
+        // TODO: use RandomAccessFile
         private byte[][] contents;
 
         public FileContents(String path, long size) throws IOException {
@@ -78,6 +79,14 @@ public class Client {
     }
 
     public Client(String dirPath) {
+
+
+
+        if(!Files.exists(Paths.get(dirPath))) {
+            logger.info("Client's starting from scratch");
+            return;
+        }
+
         try (DataInputStream src = new DataInputStream(new FileInputStream(dirPath + CONFIG_FILE))) {
             int wishListSize = src.readInt();
             for (int i = 0; i < wishListSize; i++) {
@@ -92,8 +101,6 @@ public class Client {
                 int id = src.readInt();
                 ownedFiles.put(id, new FileContents(path, size));
             }
-        } catch (FileNotFoundException e) {
-            logger.info("Client's starting from scratch");
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -103,15 +110,31 @@ public class Client {
     public static void main(String[] args) throws IOException {
         Client inner = new Client("./");
 
-        if (Objects.equals(args[0], "list")) {
-            inner.list(args[1]);
-        } else if (Objects.equals(args[0], "get")) {
-            inner.get(args[1], args[2]);
-        } else if (Objects.equals(args[0], "newfile")) {
-            inner.newfile(args[1], args[2]);
-        } else if (Objects.equals(args[0], "run")) {
-            inner.run(args[1]);
+        // TODO: switch
+        switch(args[0]) {
+            case "list":
+                inner.list(args[1]);
+                break;
+            case "get":
+                inner.get(args[1], args[2]);
+                break;
+            case "newfile":
+                inner.newfile(args[1], args[2]);
+                break;
+            case "run":
+                inner.run(args[1]);
+                break;
         }
+
+//        if (Objects.equals(args[0], "list")) {
+//            inner.list(args[1]);
+//        } else if (Objects.equals(args[0], "get")) {
+//            inner.get(args[1], args[2]);
+//        } else if (Objects.equals(args[0], "newfile")) {
+//            inner.newfile(args[1], args[2]);
+//        } else if (Objects.equals(args[0], "run")) {
+//            inner.run(args[1]);
+//        }
         inner.store();
     }
 
@@ -124,7 +147,7 @@ public class Client {
     }
 
     // list command
-    public void list(String trackerAddr) throws IOException {
+    public static void list(String trackerAddr) throws IOException {
         Socket client = new Socket(trackerAddr, Tracker.PORT);
         DataInputStream input = new DataInputStream(client.getInputStream());
         DataOutputStream output = new DataOutputStream(client.getOutputStream());
@@ -149,7 +172,7 @@ public class Client {
     }
 
     // newfile command
-    public int newfile(String trackerAddr, String path) throws IOException {
+    public static int newfile(String trackerAddr, String path) throws IOException {
         Socket client = new Socket(trackerAddr, Tracker.PORT);
         DataInputStream input = new DataInputStream(client.getInputStream());
         DataOutputStream output = new DataOutputStream(client.getOutputStream());
@@ -178,6 +201,7 @@ public class Client {
         int id = Integer.parseInt(fileId);
         wishList.add(new FileRequest(id));
 
+        // TODO: extract with lambda-argument
         try (
                 Socket client = new Socket(trackerAddress, Tracker.PORT);
                 DataInputStream input = new DataInputStream(client.getInputStream());
@@ -252,7 +276,7 @@ public class Client {
         if (ownedFiles == null || ownedFiles.size() == 0) {
             return true;
         }
-        FileContents fc = ownedFiles.get(fr.getId());
+        //FileContents fc = ownedFiles.get(fr.getId());
         if (fc == null) {
             return false;
         }
@@ -264,34 +288,66 @@ public class Client {
         return true;
     }
 
+//    private void processFileRequest(DataInputStream input,
+//                                    DataOutputStream output,
+//                                    FileRequest fr) throws IOException {
+//                                    String trackerAddr) {
+
     private void processFileRequest(FileRequest fr, String trackerAddr) {
-        try (
-                Socket client = new Socket(trackerAddr, Tracker.PORT);
-                DataInputStream input = new DataInputStream(client.getInputStream());
-                DataOutputStream output = new DataOutputStream(client.getOutputStream());
-        ) {
-            int fileId = fr.getId();
+//        try (
+//                Socket client = new Socket(trackerAddr, Tracker.PORT);
+//                DataInputStream input = new DataInputStream(client.getInputStream());
+//                DataOutputStream output = new DataOutputStream(client.getOutputStream());
+//        ) {
+        Utils.tryConnectAndDoJob(trackerAddr, (input, output) -> {
+            try {
+                int fileId = fr.getId();
 
-            output.writeByte(Tracker.SOURCES);
-            output.writeInt(fileId);
-            output.flush();
+                output.writeByte(Tracker.SOURCES);
+                output.writeInt(fileId);
+                output.flush();
 
-            int count = input.readInt();
-            for (int i = 0; i < count; i++) {
-                byte[] addr = new byte[IP_LEN];
-                int port;
-                if (input.read(addr) != IP_LEN) {
-                    logger.warning("Wrong addr format in sources request");
-                    return;
+                int count = input.readInt();
+                for (int i = 0; i < count; i++) {
+                    byte[] addr = new byte[IP_LEN];
+                    int port;
+                    if (input.read(addr) != IP_LEN) {
+                        logger.warning("Wrong addr format in sources request");
+                        return;
+                    }
+                    port = input.readInt();
+                    logger.info("Downloading: try to get the file parts");
+                    tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
+                    logger.info("Downloading: proceeding to the next in the SOURCES");
                 }
-                port = input.readInt();
-                logger.info("Downloading: try to get the file parts");
-                tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
-                logger.info("Downloading: proceeding to the next in the SOURCES");
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        });
+//
+//
+//        int fileId = fr.getId();
+//
+//            output.writeByte(Tracker.SOURCES);
+//            output.writeInt(fileId);
+//            output.flush();
+//
+//            int count = input.readInt();
+//            for (int i = 0; i < count; i++) {
+//                byte[] addr = new byte[IP_LEN];
+//                int port;
+//                if (input.read(addr) != IP_LEN) {
+//                    logger.warning("Wrong addr format in sources request");
+//                    return;
+//                }
+//                port = input.readInt();
+//                logger.info("Downloading: try to get the file parts");
+//                tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
+//                logger.info("Downloading: proceeding to the next in the SOURCES");
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
     }
 
     private void tryToGet(int id, String hostAddr, int port) {
@@ -328,7 +384,9 @@ public class Client {
                 }
             }
         } catch (IOException e) {
+            // TODO: ignored
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
@@ -362,6 +420,7 @@ public class Client {
                 input = new DataInputStream(client.getInputStream());
                 output = new DataOutputStream(client.getOutputStream());
 
+                // TODO: java.util.Timer
                 executorService.scheduleAtFixedRate(() -> {
                     try {
                         output.writeByte(Tracker.UPDATE);
@@ -375,7 +434,9 @@ public class Client {
 
                         logger.info("Update success: " + Boolean.toString(succeed));
                     } catch (IOException e) {
+                        // TODO:
                         e.printStackTrace();
+                        throw new RuntimeException(e);
                     }
                 }, 0, TIMEOUT, TimeUnit.MILLISECONDS);
 

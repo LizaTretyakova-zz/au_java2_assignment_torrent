@@ -16,13 +16,14 @@ public class Tracker {
     public static final byte UPDATE = 4;
     public static final byte OTHER = 5;
     public static final Integer PORT = 8081;
-    public static final int TIMEOUT = 60000;
+    public static final int TIMEOUT = 60 * 1000;
     public static final int IP_SIZE = 4;
     public static final String CONFIG_FILE = "./configTracker";
 
     private static final Logger LOGGER = Logger.getLogger("TRACKER");
     // map: file_id ---> clients holding it
-    private final HashMap<Integer, ArrayList<ClientDescriptor>> seeds = new HashMap<>();
+    // TODO: Get rid of ArrayList in types
+    private final HashMap<Integer, List<ClientDescriptor>> seeds = new HashMap<>();
     // map: IP ---> client
     private final HashMap<InetAddress, ClientDescriptor> clients = new HashMap<>();
     // list: all known files
@@ -33,7 +34,8 @@ public class Tracker {
     // file description: id, name and size
     public static class FileDescr {
 
-        private int id;
+        // TODO: final
+        private final int id;
         private String name;
         private long size;
 
@@ -61,6 +63,7 @@ public class Tracker {
         private InetAddress addr;
         private int port;
         private long lastUpdated;
+        // TODO: unused
         private UUID id;
 
         public ClientDescriptor(InetAddress addr, int port, long lastUpdated) {
@@ -119,6 +122,7 @@ public class Tracker {
             }
             LOGGER.info("Restoring from file");
         } catch (FileNotFoundException e) {
+            // TODO: exception
             LOGGER.info("Starting from scratch");
         } catch (IOException e) {
             e.printStackTrace();
@@ -130,10 +134,10 @@ public class Tracker {
         new Tracker().startTracker();
     }
 
-
-    public String getTrackerAddr() {
-        return serverSocket.getInetAddress().toString();
-    }
+//    // TODO: unused
+//    public String getTrackerAddr() {
+//        return serverSocket.getInetAddress().toString();
+//    }
 
     // wake up tracker
     public void startTracker() throws IOException {
@@ -177,7 +181,7 @@ public class Tracker {
             output.writeInt(fd.getId());
             output.writeLong(fd.getSize());
 
-            ArrayList<ClientDescriptor> fileSeeds = seeds.get(fd.getId());
+            List<ClientDescriptor> fileSeeds = seeds.get(fd.getId());
             output.writeInt(fileSeeds.size());
             for (ClientDescriptor seed : fileSeeds) {
                 output.write(seed.getAddr().getAddress());
@@ -190,6 +194,7 @@ public class Tracker {
     }
 
     // list request
+    // TODO: refine method name
     private void list(DataOutputStream output) throws IOException {
         output.writeInt(files.size());
         for (FileDescr fd : files) {
@@ -204,6 +209,7 @@ public class Tracker {
     private void upload(Socket clientSocket, DataInputStream input, DataOutputStream output) throws IOException {
         String name = input.readUTF();
         long size = input.readLong();
+        // TODO: increment
         int id = new UUID(0, 0).hashCode();
         FileDescr fd = new FileDescr(id, name, size);
         files.add(fd);
@@ -231,12 +237,13 @@ public class Tracker {
     // sources request
     private void sources(DataInputStream input, DataOutputStream output) throws IOException {
         int id = input.readInt();
-        ArrayList<ClientDescriptor> fileSeeds = seeds.get(id);
+        List<ClientDescriptor> fileSeeds = seeds.get(id);
         if (fileSeeds == null) {
             //throw new RuntimeException("Wrong file id!");
             LOGGER.warning("Wring file id!");
             return;
         }
+        // TODO: extract
         for (Iterator<ClientDescriptor> it = fileSeeds.iterator();
              it.hasNext();) {
             ClientDescriptor seed = it.next();
@@ -293,19 +300,24 @@ public class Tracker {
         DataInputStream input;
         DataOutputStream output;
         try {
+            // TODO: extract with lambda argument
             input = new DataInputStream(clientSocket.getInputStream());
             output = new DataOutputStream(clientSocket.getOutputStream());
 
-            byte requestType = input.readByte();
-            if (requestType == LIST) {
-                list(output);
-            } else if (requestType == UPLOAD) {
-                upload(clientSocket, input, output);
-            } else if (requestType == SOURCES) {
-                sources(input, output);
-            } else if (requestType == UPDATE) {
-                update(clientSocket, input, output);
-            } else {
+            switch(input.readByte()) {
+                case LIST:
+                    list(output);
+                    break;
+                case UPLOAD:
+                    upload(clientSocket, input, output);
+                    break;
+                case SOURCES:
+                    sources(input, output);
+                    break;
+                case UPDATE:
+                    update(clientSocket, input, output);
+                    break;
+                default:
                 int id = input.readInt();
                 for (FileDescr file : files) {
                     if (file.getId() == id) {
@@ -316,7 +328,30 @@ public class Tracker {
                     }
                 }
                 output.flush();
+                break;
             }
+//            byte requestType = input.readByte();
+//            // TODO: switch
+//            if (requestType == LIST) {
+//                list(output);
+//            } else if (requestType == UPLOAD) {
+//                upload(clientSocket, input, output);
+//            } else if (requestType == SOURCES) {
+//                sources(input, output);
+//            } else if (requestType == UPDATE) {
+//                update(clientSocket, input, output);
+//            } else {
+//                int id = input.readInt();
+//                for (FileDescr file : files) {
+//                    if (file.getId() == id) {
+//                        long size = file.getSize();
+//                        output.writeLong(size);
+//                        output.writeUTF(file.getName());
+//                        break;
+//                    }
+//                }
+//                output.flush();
+//            }
         } catch (IOException e) {
             LOGGER.info(e.getMessage());
             throw new RuntimeException(e);
@@ -327,5 +362,9 @@ public class Tracker {
     public void stopTracker() throws IOException {
         serverSocket.close();
         threadPool.shutdown();
+
+/*
+ Мы хотим записать список всех файлов, которые когда-либо регистрировались, в файл. Так что создаём поток
+  */
     }
 }
