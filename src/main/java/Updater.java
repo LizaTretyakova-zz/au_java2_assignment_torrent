@@ -3,48 +3,44 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.logging.Logger;
 
-/**
- * Created by liza on 14.05.16.
- */ // remind tracker about our existence
+// remind tracker about our existence
 class Updater {
-    private Client client;
-    private ScheduledExecutorService executorService = null;
+    private static final Logger logger = Logger.getLogger("Updater");
+    private Timer timer = new Timer();
     private Socket client;
     private DataInputStream input;
     private DataOutputStream output;
 
-    Updater(Client client, String trackerAddr) {
-        this.client = client;
-        executorService = Executors.newSingleThreadScheduledExecutor();
-
+    public Updater(String trackerAddr, ClientState state) {
         try {
             client = new Socket(trackerAddr, Tracker.PORT);
             input = new DataInputStream(client.getInputStream());
             output = new DataOutputStream(client.getOutputStream());
 
-            // TODO: java.util.Timer
-            executorService.scheduleAtFixedRate(() -> {
-                try {
-                    output.writeByte(Tracker.UPDATE);
-                    output.writeInt((int) client.getPort());
-                    output.writeInt(client.ownedFiles.size());
-                    for (Map.Entry entry : client.ownedFiles.entrySet()) {
-                        output.writeInt((int) entry.getKey());
-                    }
-                    output.flush();
-                    boolean succeed = input.readBoolean();
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    try {
+                        output.writeByte(Tracker.UPDATE);
+                        output.writeInt(client.getPort());
+                        output.writeInt(state.getOwnedFiles().size());
+                        for (Map.Entry entry : state.getOwnedFiles().entrySet()) {
+                            output.writeInt((int) entry.getKey());
+                        }
+                        output.flush();
+                        boolean succeed = input.readBoolean();
 
-                    Client.logger.info("Update success: " + Boolean.toString(succeed));
-                } catch (IOException e) {
-                    // TODO:
-                    e.printStackTrace();
-                    throw new RuntimeException(e);
+                        logger.info("Update success: " + Boolean.toString(succeed));
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
                 }
-            }, 0, Client.TIMEOUT, TimeUnit.MILLISECONDS);
+            }, 0, Client.TIMEOUT);
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -53,6 +49,6 @@ class Updater {
     }
 
     public void stop() {
-        executorService.shutdown();
+        timer.cancel();
     }
 }

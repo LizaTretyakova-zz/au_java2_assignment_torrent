@@ -14,7 +14,7 @@ public class ClientConsoleUtils {
 
     // list command
     public static void list(String trackerAddr) throws IOException {
-        Utils.tryConnectAndDoJob(trackerAddr, (input, output) -> {
+        Utils.tryConnectWithResourcesAndDoJob(trackerAddr, (input, output) -> {
             try {
                 output.writeByte(Tracker.LIST);
                 output.flush();
@@ -36,6 +36,7 @@ public class ClientConsoleUtils {
             }
         });
     }
+
     // newfile command
     public static int newfile(String trackerAddr, String path, ClientState state) throws IOException {
         Socket client = new Socket(trackerAddr, Tracker.PORT);
@@ -66,7 +67,7 @@ public class ClientConsoleUtils {
         int id = Integer.parseInt(fileId);
         state.getWishList().add(new FileRequest(id));
 
-        Utils.tryConnectAndDoJob(trackerAddress, (input, output) -> {
+        Utils.tryConnectWithResourcesAndDoJob(trackerAddress, (input, output) -> {
             try {
                 output.writeByte(Tracker.OTHER);
                 output.writeInt(id);

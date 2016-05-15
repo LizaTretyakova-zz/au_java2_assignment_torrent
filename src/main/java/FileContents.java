@@ -2,9 +2,7 @@ import java.io.DataInputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 
-/**
- * Created by liza on 14.05.16.
- */ // file description with contents splitted into byte arrays
+// file description with contents splitted into byte arrays
 public class FileContents {
     private String path;
     // TODO: use RandomAccessFile

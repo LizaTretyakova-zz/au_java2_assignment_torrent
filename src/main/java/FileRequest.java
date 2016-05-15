@@ -1,6 +1,4 @@
-/**
- * Created by liza on 14.05.16.
- */ // a description of a file we will download in a time: id & tracker address
+// a description of a file we will download in a time: id & tracker address
 public class FileRequest {
     private int id;
 

@@ -1,8 +1,6 @@
 import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -15,46 +13,22 @@ public class Client {
     public static final byte STAT = 1;
     public static final byte GET = 2;
     public static final String CONFIG_FILE = "/configClient";
+    public static final String CURRENT_DIR = "./";
     public static final int IP_LEN = 4;
     public static final int TIMEOUT = 3 * Tracker.TIMEOUT / 4;
 
     private static final Logger logger = Logger.getLogger("CLIENT");
     // thread pool
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
-    private final ClientState clientState = new ClientState();
-//    private ClientsServer clientsServer = null;
+    private ClientsServer clientsServer = null;
     private Updater updater = null;
     private Boolean running = false;
 
-    public Client(String dirPath) {
-
-        if(!Files.exists(Paths.get(dirPath))) {
-            logger.info("Client's starting from scratch");
-            return;
-        }
-
-        try (DataInputStream src = new DataInputStream(new FileInputStream(dirPath + CONFIG_FILE))) {
-            int wishListSize = src.readInt();
-            for (int i = 0; i < wishListSize; i++) {
-                int id = src.readInt();
-                clientState.getWishList().add(new FileRequest(id));
-            }
-
-            int ownedFilesSize = src.readInt();
-            for (int i = 0; i < ownedFilesSize; i++) {
-                String path = src.readUTF();
-                long size = src.readLong();
-                int id = src.readInt();
-                clientState.getOwnedFiles().put(id, new FileContents(path, size));
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
+    public Client() {}
 
     public static void main(String[] args) throws IOException {
-        //Client inner = new Client("./");
+        Client inner = new Client();
+        ClientState state = new ClientState(CURRENT_DIR + CONFIG_FILE);
 
         switch(args[0]) {
             case "list":
@@ -67,15 +41,14 @@ public class Client {
                 ClientConsoleUtils.newfile(args[1], args[2], state);
                 break;
             case "run":
-                //inner.run(args[1]);
-                run(args[1]);
+                inner.run(args[1], state);
                 break;
         }
-        inner.store();
+        state.store();
     }
 
-    public byte[][] getFileContents(int id) {
-        FileContents tmp = clientState.getOwnedFiles().get(id);
+    public byte[][] getFileContents(int id, ClientState state) {
+        FileContents tmp = state.getOwnedFiles().get(id);
         if (tmp == null) {
             return null;
         }
@@ -83,21 +56,21 @@ public class Client {
     }
 
     // run implementation
-    public static void run(String trackerAddr) throws IOException {
+    public void run(String trackerAddr, ClientState state) throws IOException {
         synchronized (this) {
             // start sharing
             clientsServer = new ClientsServer();
             clientsServer.start();
             // start downloading
-            for (FileRequest fr : clientState.getWishList()) {
+            for (FileRequest fr : state.getWishList()) {
                 threadPool.submit((Runnable) () -> {
-                    while (!fullyDownloaded(fr)) {
-                        processFileRequest(fr, trackerAddr);
+                    while (!fullyDownloaded(fr, state)) {
+                        processFileRequest(fr, trackerAddr, state);
                     }
                 });
             }
             // start notifying tracker
-            updater = new Updater(this, trackerAddr);
+            updater = new Updater(trackerAddr, state);
 
             running = true;
         }
@@ -114,30 +87,30 @@ public class Client {
         }
     }
 
-    private void store() {
-        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(CONFIG_FILE))) {
-            output.writeInt(clientState.getWishList().size());
-            for (int i = 0; i < clientState.getWishList().size(); i++) {
-                output.writeInt(clientState.getWishList().get(i).getId());
-            }
-            output.writeInt(clientState.getOwnedFiles().size());
-            for (Map.Entry entry : clientState.getOwnedFiles().entrySet()) {
-                String path = ((FileContents) entry.getValue()).getPath();
-                output.writeUTF(path);
-                output.writeLong(new File(path).length());
-                output.writeInt((Integer) entry.getKey());
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
+//    private void store(ClientState clientState) {
+//        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(CONFIG_FILE))) {
+//            output.writeInt(clientState.getWishList().size());
+//            for (int i = 0; i < clientState.getWishList().size(); i++) {
+//                output.writeInt(clientState.getWishList().get(i).getId());
+//            }
+//            output.writeInt(clientState.getOwnedFiles().size());
+//            for (Map.Entry entry : clientState.getOwnedFiles().entrySet()) {
+//                String path = ((FileContents) entry.getValue()).getPath();
+//                output.writeUTF(path);
+//                output.writeLong(new File(path).length());
+//                output.writeInt((Integer) entry.getKey());
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            throw new RuntimeException(e);
+//        }
+//    }
 
-    private boolean fullyDownloaded(FileRequest fr) {
-        if (clientState.getOwnedFiles() == null || clientState.getOwnedFiles().size() == 0) {
+    private boolean fullyDownloaded(FileRequest fr, ClientState state) {
+        if (state.getOwnedFiles() == null || state.getOwnedFiles().size() == 0) {
             return true;
         }
-        FileContents fc = clientState.getOwnedFiles().get(fr.getId());
+        FileContents fc = state.getOwnedFiles().get(fr.getId());
         if (fc == null) {
             return false;
         }
@@ -149,8 +122,8 @@ public class Client {
         return true;
     }
 
-    private void processFileRequest(FileRequest fr, String trackerAddr) {
-        Utils.tryConnectAndDoJob(trackerAddr, (input, output) -> {
+    private void processFileRequest(FileRequest fr, String trackerAddr, ClientState state) {
+        Utils.tryConnectWithResourcesAndDoJob(trackerAddr, (input, output) -> {
             try {
                 int fileId = fr.getId();
 
@@ -168,7 +141,7 @@ public class Client {
                     }
                     port = input.readInt();
                     logger.info("Downloading: try to get the file parts");
-                    tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
+                    tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port, state);
                     logger.info("Downloading: proceeding to the next in the SOURCES");
                 }
             } catch (Exception e) {
@@ -177,7 +150,7 @@ public class Client {
         });
     }
 
-    private void tryToGet(int id, String hostAddr, int port) {
+    private void tryToGet(int id, String hostAddr, int port, ClientState clientState) {
         Socket client;
         DataInputStream input;
         DataOutputStream output;
