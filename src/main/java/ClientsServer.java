@@ -3,14 +3,14 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 // a server part of client
 class ClientsServer {
-    private static final Logger logger = Logger.getLogger("ClientsServer");
+    private static final Logger LOGGER = Logger.getLogger("ClientsServer");
     private ServerSocket server;
     private ExecutorService threadPool = Executors.newCachedThreadPool();
     private Runnable processClient = new Runnable() {
@@ -27,7 +27,7 @@ class ClientsServer {
                 output = new DataOutputStream(client.getOutputStream());
                 state = new ClientState(Client.CURRENT_DIR);
 
-                switch(input.readByte()) {
+                switch (input.readByte()) {
                     case Client.STAT:
                         threadPool.submit((Runnable) () -> {
                             try {
@@ -38,7 +38,7 @@ class ClientsServer {
                                 throw new RuntimeException(e);
                             }
                         });
-                    break;
+                        break;
                     case Client.GET:
                         threadPool.submit((Runnable) () -> {
                             try {
@@ -49,7 +49,9 @@ class ClientsServer {
                                 throw new RuntimeException(e);
                             }
                         });
-                    break;
+                        break;
+                    default:
+                        throw new UnsupportedOperationException("No such command code in the protocol");
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -60,36 +62,27 @@ class ClientsServer {
 
     // start listening for incoming connections
     public void start() throws IOException {
-        logger.info("Starting clientsServer");
+        LOGGER.info("Starting clientsServer");
 
         server = new ServerSocket(0);
         threadPool.submit(processClient);
 
-        logger.info("ClientsServer started");
+        LOGGER.info("ClientsServer started");
     }
 
     // stop the client-client server
     public void stop() throws InterruptedException, IOException {
-        logger.info("Stopping clientsServer");
+        LOGGER.info("Stopping clientsServer");
 
         threadPool.shutdown();
 
-        logger.info("ClientsServer stopped");
+        LOGGER.info("ClientsServer stopped");
     }
 
     // stat request
     public void stat(DataInputStream input, DataOutputStream output, ClientState state) throws IOException {
         int id = input.readInt();
-        ArrayList<Integer> available = new ArrayList<>();
-        synchronized (this) {
-            FileContents fc = state.getOwnedFiles().get(id);
-            byte[][] contents = fc.getContents();
-            for (int i = 0; i < fc.getContentsSize(); i++) {
-                if (contents[i] != null) {
-                    available.add(i);
-                }
-            }
-        }
+        List<Integer> available = state.getOwnedFiles().get(id).getAvailable();
 
         output.writeInt(available.size());
         for (Integer anAvailable : available) {
@@ -97,7 +90,7 @@ class ClientsServer {
         }
         output.flush();
 
-        logger.info("Stated");
+        LOGGER.info("Stated");
     }
 
     // give the file to the other client
@@ -108,18 +101,21 @@ class ClientsServer {
         FileContents fileContents = state.getOwnedFiles().get(id);
         if (fileContents == null) {
             output.flush();
-            logger.warning("Requested a missing file");
+            LOGGER.warning("Requested a missing file");
             return;
         }
-        byte[] content = fileContents.getContents()[partId];
-        if (content == null) {
-            output.flush();
-            logger.warning("Requested a missing part of a file");
-            return;
-        }
+//        byte[] content = fileContents.getContents()[partId];
+//        if (content == null) {
+//            output.flush();
+//            LOGGER.warning("Requested a missing part of a file");
+//            return;
+//        }
+//
+//        output.write(content);
+//        output.flush();
 
-        output.write(content);
-        output.flush();
-        logger.info("File contents sent");
+        fileContents.readPart(partId, output);
+
+        LOGGER.info("File contents sent");
     }
 }

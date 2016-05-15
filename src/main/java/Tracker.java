@@ -1,4 +1,6 @@
-import java.io.*;
+import java.io.DataOutputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.concurrent.ExecutorService;
@@ -23,7 +25,8 @@ public class Tracker {
     private ExecutorService threadPool = Executors.newCachedThreadPool();
 
 
-    public Tracker() {}
+    public Tracker() {
+    }
 
     public static void main(String[] args) throws IOException {
         new Tracker().startTracker();
@@ -33,31 +36,33 @@ public class Tracker {
     public void startTracker() throws IOException {
         DataOutputStream backup = new DataOutputStream(new FileOutputStream(CONFIG_FILE));
         serverSocket = new ServerSocket(PORT);
-        while (!Thread.interrupted()) {
-            LOGGER.info("New loop");
-            try {
-                Socket clientSocket = serverSocket.accept();
-                LOGGER.info("Client accepted: " + clientSocket.toString());
-                threadPool.submit((Runnable) () -> {
-                    try {
-                        processClient(clientSocket);
-                        clientSocket.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                        throw new RuntimeException(e);
-                    }
-                });
-            } catch (IOException e) {
-                LOGGER.info("Connection closed");
+        threadPool.submit((Runnable) () -> {
+            while (!Thread.interrupted()) {
+                LOGGER.info("New loop");
+                try {
+                    Socket clientSocket = serverSocket.accept();
+                    LOGGER.info("Client accepted: " + clientSocket.toString());
+                    threadPool.submit((Runnable) () -> {
+                        try {
+                            processClient(clientSocket);
+                            clientSocket.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
+                        }
+                    });
+                } catch (IOException e) {
+                    LOGGER.info("Connection closed");
+                }
             }
-        }
 
-        try {
-            state.store(backup);
-        } catch (IOException e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
+            try {
+                state.store(backup);
+            } catch (IOException e) {
+                e.printStackTrace();
+                throw new RuntimeException(e);
+            }
+        });
     }
 
 
@@ -67,7 +72,7 @@ public class Tracker {
     private void processClient(Socket clientSocket) throws IOException {
         Utils.tryAndDoJob(clientSocket, (input, output) -> {
             try {
-                switch(input.readByte()) {
+                switch (input.readByte()) {
                     case LIST:
                         TrackerUtils.executeList(output, state);
                         break;

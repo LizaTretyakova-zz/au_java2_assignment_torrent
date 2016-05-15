@@ -11,15 +11,15 @@ public class FileDescr {
         this.size = size;
     }
 
-    synchronized public int getId() {
+    public synchronized int getId() {
         return id;
     }
 
-    synchronized public String getName() {
+    public synchronized String getName() {
         return name;
     }
 
-    synchronized public long getSize() {
+    public synchronized long getSize() {
         return size;
     }
 }

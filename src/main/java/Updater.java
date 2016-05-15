@@ -9,13 +9,13 @@ import java.util.logging.Logger;
 
 // remind tracker about our existence
 class Updater {
-    private static final Logger logger = Logger.getLogger("Updater");
+    private static final Logger LOGGER = Logger.getLogger("Updater");
     private Timer timer = new Timer();
     private Socket client;
     private DataInputStream input;
     private DataOutputStream output;
 
-    public Updater(String trackerAddr, ClientState state) {
+    Updater(String trackerAddr, ClientState state) {
         try {
             client = new Socket(trackerAddr, Tracker.PORT);
             input = new DataInputStream(client.getInputStream());
@@ -34,7 +34,7 @@ class Updater {
                         output.flush();
                         boolean succeed = input.readBoolean();
 
-                        logger.info("Update success: " + Boolean.toString(succeed));
+                        LOGGER.info("Update success: " + Boolean.toString(succeed));
                     } catch (IOException e) {
                         e.printStackTrace();
                         throw new RuntimeException(e);

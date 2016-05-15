@@ -10,15 +10,15 @@ public class ClientDescriptor {
         this.lastUpdated = lastUpdated;
     }
 
-    synchronized public long getLastUpdated() {
+    public synchronized long getLastUpdated() {
         return lastUpdated;
     }
 
-    synchronized public void setLastUpdated(long lastUpdated) {
+    public synchronized void setLastUpdated(long lastUpdated) {
         this.lastUpdated = lastUpdated;
     }
 
-    synchronized public InetAddress getAddr() {
+    public synchronized InetAddress getAddr() {
         return addr;
     }
 }

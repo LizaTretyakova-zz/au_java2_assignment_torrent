@@ -1,10 +1,14 @@
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class ClientState {
+    private static final Logger LOGGER = Logger.getLogger("ClientState");
     // list of files we need to download
     private final List<FileRequest> wishList = new ArrayList<>();
     // list of files we have
@@ -12,6 +16,11 @@ public class ClientState {
 
 
     public ClientState(String dirPath) {
+        if (!Files.exists(Paths.get(dirPath))) {
+            LOGGER.info("Client's starting from scrat ch");
+            return;
+        }
+
         try (DataInputStream src = new DataInputStream(new FileInputStream(dirPath))) {
             int wishListSize = src.readInt();
             for (int i = 0; i < wishListSize; i++) {
@@ -32,15 +41,15 @@ public class ClientState {
         }
     }
 
-    synchronized public List<FileRequest> getWishList() {
+    public synchronized List<FileRequest> getWishList() {
         return wishList;
     }
 
-    synchronized public HashMap<Integer, FileContents> getOwnedFiles() {
+    public synchronized HashMap<Integer, FileContents> getOwnedFiles() {
         return ownedFiles;
     }
 
-    synchronized public void store(/*ClientState clientState*/) {
+    public synchronized void store(/*ClientState clientState*/) {
         try (DataOutputStream output = new DataOutputStream(new FileOutputStream(Client.CURRENT_DIR
                 + Client.CONFIG_FILE))) {
             output.writeInt(wishList.size());
@@ -59,5 +68,4 @@ public class ClientState {
             throw new RuntimeException(e);
         }
     }
-
 }

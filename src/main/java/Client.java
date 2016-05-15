@@ -1,7 +1,8 @@
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -16,7 +17,7 @@ public class Client {
     public static final int IP_LEN = 4;
     public static final int TIMEOUT = 3 * Tracker.TIMEOUT / 4;
 
-    private static final Logger logger = Logger.getLogger("CLIENT");
+    private static final Logger LOGGER = Logger.getLogger("CLIENT");
     // thread pool
     private final ExecutorService threadPool = Executors.newCachedThreadPool();
     private ClientsServer clientsServer = null;
@@ -32,7 +33,7 @@ public class Client {
         Client inner = new Client(CURRENT_DIR);
         //ClientState state = new ClientState(CURRENT_DIR + CONFIG_FILE);
 
-        switch(args[0]) {
+        switch (args[0]) {
             case "list":
                 ClientConsoleUtils.list(args[1]);
                 break;
@@ -45,12 +46,18 @@ public class Client {
             case "run":
                 inner.run(args[1]);
                 break;
+            default:
+                throw new UnsupportedOperationException("No such console command");
         }
         inner.state.store();
     }
 
     public ClientState getState() {
         return state;
+    }
+
+    public FileContents getFileById(int id) {
+        return state.getOwnedFiles().get(id);
     }
 
     // run implementation
@@ -95,7 +102,7 @@ public class Client {
             return false;
         }
         for (int i = 0; i < fc.getContentsSize(); i++) {
-            if(!fc.isPartDownloaded(i)) {
+            if (!fc.isPartDownloaded(i)) {
                 return false;
             }
         }
@@ -116,13 +123,13 @@ public class Client {
                     byte[] addr = new byte[IP_LEN];
                     int port;
                     if (input.read(addr) != IP_LEN) {
-                        logger.warning("Wrong addr format in sources request");
+                        LOGGER.warning("Wrong addr format in sources request");
                         return;
                     }
                     port = input.readInt();
-                    logger.info("Downloading: try to get the file parts");
+                    LOGGER.info("Downloading: try to get the file parts");
                     tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
-                    logger.info("Downloading: proceeding to the next in the SOURCES");
+                    LOGGER.info("Downloading: proceeding to the next in the SOURCES");
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -144,12 +151,12 @@ public class Client {
             output.flush();
 
             int count = input.readInt();
-            logger.info("In tryToGet: count=" + Integer.toString(count));
+            LOGGER.info("In tryToGet: count=" + Integer.toString(count));
             synchronized (this) {
                 for (int i = 0; i < count; i++) {
                     int partId = input.readInt();
                     if (!state.getOwnedFiles().get(id).isPartDownloaded(partId)) {
-                        logger.info("In tryToGet: matched a part");
+                        LOGGER.info("In tryToGet: matched a part");
                         getPart(id, partId, input, output, state.getOwnedFiles().get(id));
                     }
                 }
@@ -168,7 +175,7 @@ public class Client {
         output.writeInt(partId);
         output.flush();
 
-        logger.info("Getting the part");
+        LOGGER.info("Getting the part");
 
         fc.writePart(partId, input);
     }

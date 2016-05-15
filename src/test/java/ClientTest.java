@@ -1,7 +1,7 @@
+import org.apache.commons.io.FileUtils;
 import org.junit.Rule;
 import org.junit.Test;
 import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.assertEquals;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.DataOutputStream;
@@ -10,7 +10,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 
@@ -18,8 +17,6 @@ public class ClientTest {
 
     private static final String TRACKER_ADDR = "127.0.0.1";
     private static final int MAGIC_WAIT_TIME = 5;
-    //private static final byte[] TEXT = {0};
-    //private static final byte[] TEXT = "Hello".getBytes();
     private static final byte[] TEXT =
             (" Forms FORM-29827281-12:\n" +
                     "Test Assessment Report\n" +
@@ -189,11 +186,9 @@ public class ClientTest {
 
         TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
 
-        byte[][] contents1 = client1.getFileContents(id);
-        byte[][] contents2 = client2.getFileContents(id);
 
-        assertTrue(contents1[0][0] == contents2[0][0]);
-        assertEquals(Arrays.toString(contents1[0]), Arrays.toString(contents2[0]));
+        assertTrue(FileUtils.contentEquals(
+                new File(client1.getFileById(id).getPath()), new File(client2.getFileById(id).getPath())
+        ));
     }
-
 }

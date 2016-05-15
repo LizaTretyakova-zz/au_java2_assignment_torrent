@@ -1,4 +1,9 @@
-import java.io.*;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.util.ArrayList;
+import java.util.List;
 
 // file description with contents splitted into byte arrays
 public class FileContents {
@@ -21,21 +26,35 @@ public class FileContents {
         return parts.length;
     }
 
-    synchronized public void writePart(int index, DataInputStream src) throws IOException {
-        if(parts[index]) {
+    public synchronized List<Integer> getAvailable() {
+        List<Integer> result = new ArrayList<>();
+        for (int i = 0; i < parts.length; i++) {
+            if (parts[i]) {
+                result.add(i);
+            }
+        }
+        return result;
+    }
+
+    public synchronized void writePart(int index, DataInputStream src) throws IOException {
+        if (parts[index]) {
             return;
         }
 
         byte[] buffer = new byte[PART_SIZE];
 
-        if(src.read(buffer) > 0) {
+        if (src.read(buffer) > 0) {
             ra.seek(index * PART_SIZE);
             ra.write(buffer);
             parts[index] = true;
         }
     }
 
-    synchronized public void readPart(int index, DataOutputStream output) throws IOException {
+    public synchronized void readPart(int index, DataOutputStream output) throws IOException {
+        if (!parts[index]) {
+            return;
+        }
+
         byte[] buffer = new byte[PART_SIZE];
 
         ra.seek(index * PART_SIZE);
@@ -44,7 +63,7 @@ public class FileContents {
         output.flush();
     }
 
-    synchronized public boolean isPartDownloaded(int index) {
+    public synchronized boolean isPartDownloaded(int index) {
         return parts[index];
     }
 }

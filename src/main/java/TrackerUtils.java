@@ -4,29 +4,19 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.logging.Logger;
 
-public class TrackerUtils {
+public final class TrackerUtils {
 
-    private static final Logger logger = Logger.getLogger("TrackerUtils");
+    private static final Logger LOGGER = Logger.getLogger("TrackerUtils");
 
-    public TrackerUtils() {}
+    private TrackerUtils() {
+    }
 
     // executeList request
     public static void executeList(DataOutputStream output, TrackerState state) throws IOException {
-        List<FileDescr> files;
-        synchronized (state.filesSync) {
-            files = state.getFiles();
-            output.writeInt(files.size());
-            for (FileDescr fd : files) {
-                output.writeInt(fd.getId());
-                output.writeUTF(fd.getName());
-                output.writeLong(fd.getSize());
-            }
-            output.flush();
-        }
+        state.listFiles(output);
     }
 
     // executeUpload request
@@ -35,15 +25,18 @@ public class TrackerUtils {
             throws IOException {
         String name = input.readUTF();
         long size = input.readLong();
-        int id;
-        FileDescr fd;
-        synchronized (state.filesSync) {
-            id = state.getFiles().size();
-            fd = new FileDescr(id, name, size);
-            state.getFiles().add(fd);
-        }
+        int id = state.getId();
+        FileDescr fd = new FileDescr(id, name, size);
+        state.getFiles().add(fd);
+//        int id;
+//        FileDescr fd;
+//        synchronized (state.filesSync) {
+//            id = state.getFiles().size();
+//            fd = new FileDescr(id, name, size);
+//            state.getFiles().add(fd);
+//        }
 
-        logger.info("Upload handler -- read data: name=" + name + " size=" + Long.toString(size));
+        LOGGER.info("Upload handler -- read data: name=" + name + " size=" + Long.toString(size));
 
         InetAddress clientAddr = clientSocket.getInetAddress();
         int port = clientSocket.getPort();
@@ -70,11 +63,9 @@ public class TrackerUtils {
         state.updateSeeds(id);
         List<ClientDescriptor> fileSeeds = state.getSeeds().get(id);
         if (fileSeeds == null) {
-            logger.warning("Wrong file id!");
+            LOGGER.warning("Wrong file id!");
             return;
         }
-        // TODO: extract
-//        updateSeeds(fileSeeds);
         output.writeInt(fileSeeds.size());
         for (ClientDescriptor seed : fileSeeds) {
             byte[] addrBytes = seed.getAddr().getAddress();

@@ -13,18 +13,17 @@ import java.util.logging.Logger;
 
 public class TrackerState {
 
-    public final Object filesSync = new Object();
-
-    private static final Logger logger = Logger.getLogger("TrackerState");
+    private static final Logger LOGGER = Logger.getLogger("TrackerState");
     // map: file_id ---> clients holding it
     private final HashMap<Integer, List<ClientDescriptor>> seeds = new HashMap<>();
     // map: IP ---> client
     private final HashMap<InetAddress, ClientDescriptor> clients = new HashMap<>();
     private final List<FileDescr> files = new ArrayList<>();
+    private int cnt = 0;
 
     public TrackerState(String path) {
-        if(!Files.exists(Paths.get(path))) {
-            logger.info("Starting from scratch");
+        if (!Files.exists(Paths.get(path))) {
+            LOGGER.info("Starting from scratch");
             return;
         }
 
@@ -37,7 +36,7 @@ public class TrackerState {
 
                 files.add(new FileDescr(fileId, filename, size));
             }
-            logger.info("Restored from file");
+            LOGGER.info("Restored from file");
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
@@ -45,19 +44,19 @@ public class TrackerState {
 
     }
 
-    synchronized public HashMap<Integer, List<ClientDescriptor>> getSeeds() {
+    public synchronized HashMap<Integer, List<ClientDescriptor>> getSeeds() {
         return seeds;
     }
 
-    synchronized public HashMap<InetAddress, ClientDescriptor> getClients() {
+    public synchronized HashMap<InetAddress, ClientDescriptor> getClients() {
         return clients;
     }
 
-    synchronized public List<FileDescr> getFiles() {
+    public synchronized List<FileDescr> getFiles() {
         return files;
     }
 
-    synchronized public void store(DataOutputStream output) throws IOException {
+    public synchronized void store(DataOutputStream output) throws IOException {
         for (FileDescr fd : files) {
             output.writeUTF(fd.getName());
             output.writeInt(fd.getId());
@@ -67,13 +66,32 @@ public class TrackerState {
         }
     }
 
-    synchronized public void updateSeeds(int id) {
+    public synchronized void updateSeeds(int id) {
         for (Iterator<ClientDescriptor> it = seeds.get(id).iterator();
-             it.hasNext(); ) {
+             it.hasNext();
+        ) {
             ClientDescriptor seed = it.next();
             if (System.currentTimeMillis() - seed.getLastUpdated() > Tracker.TIMEOUT) {
                 it.remove();
             }
         }
+    }
+
+    public synchronized void listFiles(DataOutputStream output) {
+        try {
+            output.writeInt(files.size());
+            for (FileDescr fd : files) {
+                output.writeInt(fd.getId());
+                output.writeUTF(fd.getName());
+                output.writeLong(fd.getSize());
+            }
+            output.flush();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public synchronized int getId() {
+        return cnt++;
     }
 }

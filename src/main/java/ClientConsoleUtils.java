@@ -6,10 +6,10 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.util.logging.Logger;
 
-public class ClientConsoleUtils {
-    private static final Logger logger = Logger.getLogger("ClientConsoleUtils");
+public final class ClientConsoleUtils {
+    private static final Logger LOGGER = Logger.getLogger("ClientConsoleUtils");
 
-    public ClientConsoleUtils(Client client) {
+    private ClientConsoleUtils() {
     }
 
     // list command
@@ -19,17 +19,23 @@ public class ClientConsoleUtils {
                 output.writeByte(Tracker.LIST);
                 output.flush();
 
-                logger.info("LIST requested");
+                LOGGER.info("LIST requested");
 
                 int count = input.readInt();
-                logger.info("count: " + Integer.toString(count));
+                LOGGER.info("count: " + Integer.toString(count));
 
                 for (int i = 0; i < count; i++) {
                     int id = input.readInt();
                     String name = input.readUTF();
                     long size = input.readLong();
 
-                    logger.info("id: " + Integer.toString(id) + " name: " + name + " size: " + Long.toString(size));
+                    LOGGER.info("id: "
+                            + Integer.toString(id)
+                            + " name: "
+                            + name
+                            + " size: "
+                            + Long.toString(size)
+                    );
                 }
             } catch (Exception e) {
                 throw new RuntimeException(e);
@@ -49,14 +55,14 @@ public class ClientConsoleUtils {
         output.writeLong(size);
         output.flush();
 
-        logger.info("NEWFILE requested: name=" + path + " size=" + Long.toString(size));
+        LOGGER.info("NEWFILE requested: name=" + path + " size=" + Long.toString(size));
 
         int id = input.readInt();
-        logger.info("id: " + Integer.toString(id));
+        LOGGER.info("id: " + Integer.toString(id));
 
         FileContents fc = new FileContents(path, size);
         state.getOwnedFiles().put(id, fc);
-        logger.info("File uploaded");
+        LOGGER.info("File uploaded");
 
         client.close();
         return id;

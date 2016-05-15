@@ -3,12 +3,13 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.logging.Logger;
 
-public class Utils {
+public final class Utils {
 
-    private static final Logger logger = Logger.getLogger("Utils");
+    private static final Logger LOGGER = Logger.getLogger("Utils");
+
+    private Utils() {}
 
     public static void tryConnectWithResourcesAndDoJob(
             String trackerAddr, BiConsumer<DataInputStream, DataOutputStream> job
@@ -31,7 +32,7 @@ public class Utils {
             DataOutputStream output = new DataOutputStream(socket.getOutputStream());
             job.accept(input, output);
         } catch (IOException e) {
-            logger.info(e.getMessage());
+            LOGGER.info(e.getMessage());
             throw new RuntimeException(e);
         }
 
