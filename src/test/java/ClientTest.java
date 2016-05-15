@@ -157,13 +157,13 @@ public class ClientTest {
 
     @Test
     public void testNewfileRequest() throws IOException {
-        ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
+        ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath(), client1.getState());
     }
 
     @Test
     public void testNewFileAndList() throws IOException, InterruptedException {
         ClientConsoleUtils.list(TRACKER_ADDR);
-        ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
+        ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath(), client1.getState());
 
         TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
 
@@ -172,15 +172,15 @@ public class ClientTest {
 
     @Test
     public void testGetRequest() throws IOException {
-        int id = ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
-        client2.get(TRACKER_ADDR, Integer.toString(id));
+        int id = ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath(), client1.getState());
+        ClientConsoleUtils.get(TRACKER_ADDR, Integer.toString(id), client2.getState());
     }
 
     @Test
     public void testConnection() throws IOException, InterruptedException {
 
-        int id = ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath());
-        client2.get(TRACKER_ADDR, Integer.toString(id));
+        int id = ClientConsoleUtils.newfile(TRACKER_ADDR, file.getPath(), client1.getState());
+        ClientConsoleUtils.get(TRACKER_ADDR, Integer.toString(id), client2.getState());
 
         TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
 

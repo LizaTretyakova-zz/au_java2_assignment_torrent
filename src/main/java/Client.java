@@ -22,40 +22,39 @@ public class Client {
     private ClientsServer clientsServer = null;
     private Updater updater = null;
     private Boolean running = false;
+    private ClientState state = null;
 
-    public Client() {}
+    public Client(String path) {
+        state = path == null ? new ClientState(CURRENT_DIR + CONFIG_FILE) : new ClientState(path + CONFIG_FILE);
+    }
 
     public static void main(String[] args) throws IOException {
-        Client inner = new Client();
-        ClientState state = new ClientState(CURRENT_DIR + CONFIG_FILE);
+        Client inner = new Client(CURRENT_DIR);
+        //ClientState state = new ClientState(CURRENT_DIR + CONFIG_FILE);
 
         switch(args[0]) {
             case "list":
                 ClientConsoleUtils.list(args[1]);
                 break;
             case "get":
-                ClientConsoleUtils.get(args[1], args[2], state);
+                ClientConsoleUtils.get(args[1], args[2], inner.getState());
                 break;
             case "newfile":
-                ClientConsoleUtils.newfile(args[1], args[2], state);
+                ClientConsoleUtils.newfile(args[1], args[2], inner.getState());
                 break;
             case "run":
-                inner.run(args[1], state);
+                inner.run(args[1]);
                 break;
         }
-        state.store();
+        inner.state.store();
     }
 
-//    public byte[][] getFileContents(int id, ClientState state) {
-//        FileContents tmp = state.getOwnedFiles().get(id);
-//        if (tmp == null) {
-//            return null;
-//        }
-//        return tmp.getContents();
-//    }
+    public ClientState getState() {
+        return state;
+    }
 
     // run implementation
-    public void run(String trackerAddr, ClientState state) throws IOException {
+    public void run(String trackerAddr) throws IOException {
         synchronized (this) {
             // start sharing
             clientsServer = new ClientsServer();
@@ -63,8 +62,8 @@ public class Client {
             // start downloading
             for (FileRequest fr : state.getWishList()) {
                 threadPool.submit((Runnable) () -> {
-                    while (!fullyDownloaded(fr, state)) {
-                        processFileRequest(fr, trackerAddr, state);
+                    while (!fullyDownloaded(fr)) {
+                        processFileRequest(fr, trackerAddr);
                     }
                 });
             }
@@ -83,10 +82,11 @@ public class Client {
             updater.stop();
             threadPool.shutdown();
             clientsServer.stop();
+            state.store();
         }
     }
 
-    private boolean fullyDownloaded(FileRequest fr, ClientState state) {
+    private boolean fullyDownloaded(FileRequest fr) {
         if (state.getOwnedFiles() == null || state.getOwnedFiles().size() == 0) {
             return true;
         }
@@ -94,11 +94,6 @@ public class Client {
         if (fc == null) {
             return false;
         }
-//        for (byte[] part : fc.getContents()) {
-//            if (part == null) {
-//                return false;
-//            }
-//        }
         for (int i = 0; i < fc.getContentsSize(); i++) {
             if(!fc.isPartDownloaded(i)) {
                 return false;
@@ -107,7 +102,7 @@ public class Client {
         return true;
     }
 
-    private void processFileRequest(FileRequest fr, String trackerAddr, ClientState state) {
+    private void processFileRequest(FileRequest fr, String trackerAddr) {
         Utils.tryConnectWithResourcesAndDoJob(trackerAddr, (input, output) -> {
             try {
                 int fileId = fr.getId();
@@ -126,7 +121,7 @@ public class Client {
                     }
                     port = input.readInt();
                     logger.info("Downloading: try to get the file parts");
-                    tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port, state);
+                    tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
                     logger.info("Downloading: proceeding to the next in the SOURCES");
                 }
             } catch (Exception e) {
@@ -135,7 +130,7 @@ public class Client {
         });
     }
 
-    private void tryToGet(int id, String hostAddr, int port, ClientState clientState) {
+    private void tryToGet(int id, String hostAddr, int port) {
         Socket client;
         DataInputStream input;
         DataOutputStream output;
@@ -153,19 +148,9 @@ public class Client {
             synchronized (this) {
                 for (int i = 0; i < count; i++) {
                     int partId = input.readInt();
-                    if (!clientState.getOwnedFiles().get(id).isPartDownloaded(partId)) {
+                    if (!state.getOwnedFiles().get(id).isPartDownloaded(partId)) {
                         logger.info("In tryToGet: matched a part");
-                        getPart(id, partId, input, output, clientState.getOwnedFiles().get(id));
-//                        clientState.getOwnedFiles().get(id).getContents()[partId] = new byte[0];
-//                        threadPool.submit((Runnable) () -> {
-//                            try {
-//                                clientState.getOwnedFiles().get(id).getContents()[partId] = getPart(id, partId, input, output);
-//                                client.close();
-//                            } catch (IOException e) {
-//                                e.printStackTrace();
-//                                throw new RuntimeException(e);
-//                            }
-//                        });
+                        getPart(id, partId, input, output, state.getOwnedFiles().get(id));
                     }
                 }
             }
@@ -175,7 +160,7 @@ public class Client {
         }
     }
 
-    private byte[] getPart(
+    private void getPart(
             int id, int partId, DataInputStream input, DataOutputStream output, FileContents fc
     ) throws IOException {
         output.writeByte(GET);
@@ -186,12 +171,6 @@ public class Client {
         logger.info("Getting the part");
 
         fc.writePart(partId, input);
-//
-//        byte[] result = new byte[PART_SIZE];
-//        if (input.read(result) == -1) {
-//            return null;
-//        }
-//        return result;
     }
 
 }

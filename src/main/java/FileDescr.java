@@ -1,7 +1,6 @@
 // file description: id, name and size
 public class FileDescr {
 
-    // TODO: final
     private final int id;
     private final String name;
     private final long size;
@@ -12,15 +11,15 @@ public class FileDescr {
         this.size = size;
     }
 
-    public int getId() {
+    synchronized public int getId() {
         return id;
     }
 
-    public String getName() {
+    synchronized public String getName() {
         return name;
     }
 
-    public long getSize() {
+    synchronized public long getSize() {
         return size;
     }
 }

@@ -76,14 +76,4 @@ public class TrackerState {
             }
         }
     }
-
-//    public static void updateSeeds(List<ClientDescriptor> fileSeeds) {
-//        for (Iterator<ClientDescriptor> it = fileSeeds.iterator();
-//             it.hasNext(); ) {
-//            ClientDescriptor seed = it.next();
-//            if (System.currentTimeMillis() - seed.getLastUpdated() > Tracker.TIMEOUT) {
-//                it.remove();
-//            }
-//        }
-//    }
 }

@@ -32,15 +32,15 @@ public class ClientState {
         }
     }
 
-    public List<FileRequest> getWishList() {
+    synchronized public List<FileRequest> getWishList() {
         return wishList;
     }
 
-    public HashMap<Integer, FileContents> getOwnedFiles() {
+    synchronized public HashMap<Integer, FileContents> getOwnedFiles() {
         return ownedFiles;
     }
 
-    public void store(/*ClientState clientState*/) {
+    synchronized public void store(/*ClientState clientState*/) {
         try (DataOutputStream output = new DataOutputStream(new FileOutputStream(Client.CURRENT_DIR
                 + Client.CONFIG_FILE))) {
             output.writeInt(wishList.size());
