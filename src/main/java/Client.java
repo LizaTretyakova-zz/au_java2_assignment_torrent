@@ -9,7 +9,6 @@ import java.util.logging.Logger;
 public class Client {
 
     // constants
-    public static final int PART_SIZE = 1024;
     public static final byte STAT = 1;
     public static final byte GET = 2;
     public static final String CONFIG_FILE = "/configClient";
@@ -47,13 +46,13 @@ public class Client {
         state.store();
     }
 
-    public byte[][] getFileContents(int id, ClientState state) {
-        FileContents tmp = state.getOwnedFiles().get(id);
-        if (tmp == null) {
-            return null;
-        }
-        return tmp.getContents();
-    }
+//    public byte[][] getFileContents(int id, ClientState state) {
+//        FileContents tmp = state.getOwnedFiles().get(id);
+//        if (tmp == null) {
+//            return null;
+//        }
+//        return tmp.getContents();
+//    }
 
     // run implementation
     public void run(String trackerAddr, ClientState state) throws IOException {
@@ -87,25 +86,6 @@ public class Client {
         }
     }
 
-//    private void store(ClientState clientState) {
-//        try (DataOutputStream output = new DataOutputStream(new FileOutputStream(CONFIG_FILE))) {
-//            output.writeInt(clientState.getWishList().size());
-//            for (int i = 0; i < clientState.getWishList().size(); i++) {
-//                output.writeInt(clientState.getWishList().get(i).getId());
-//            }
-//            output.writeInt(clientState.getOwnedFiles().size());
-//            for (Map.Entry entry : clientState.getOwnedFiles().entrySet()) {
-//                String path = ((FileContents) entry.getValue()).getPath();
-//                output.writeUTF(path);
-//                output.writeLong(new File(path).length());
-//                output.writeInt((Integer) entry.getKey());
-//            }
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            throw new RuntimeException(e);
-//        }
-//    }
-
     private boolean fullyDownloaded(FileRequest fr, ClientState state) {
         if (state.getOwnedFiles() == null || state.getOwnedFiles().size() == 0) {
             return true;
@@ -114,8 +94,13 @@ public class Client {
         if (fc == null) {
             return false;
         }
-        for (byte[] part : fc.getContents()) {
-            if (part == null) {
+//        for (byte[] part : fc.getContents()) {
+//            if (part == null) {
+//                return false;
+//            }
+//        }
+        for (int i = 0; i < fc.getContentsSize(); i++) {
+            if(!fc.isPartDownloaded(i)) {
                 return false;
             }
         }
@@ -168,18 +153,19 @@ public class Client {
             synchronized (this) {
                 for (int i = 0; i < count; i++) {
                     int partId = input.readInt();
-                    if (clientState.getOwnedFiles().get(id).getContents()[partId] == null) {
+                    if (!clientState.getOwnedFiles().get(id).isPartDownloaded(partId)) {
                         logger.info("In tryToGet: matched a part");
-                        clientState.getOwnedFiles().get(id).getContents()[partId] = new byte[0];
-                        threadPool.submit((Runnable) () -> {
-                            try {
-                                clientState.getOwnedFiles().get(id).getContents()[partId] = getPart(id, partId, input, output);
-                                client.close();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                                throw new RuntimeException(e);
-                            }
-                        });
+                        getPart(id, partId, input, output, clientState.getOwnedFiles().get(id));
+//                        clientState.getOwnedFiles().get(id).getContents()[partId] = new byte[0];
+//                        threadPool.submit((Runnable) () -> {
+//                            try {
+//                                clientState.getOwnedFiles().get(id).getContents()[partId] = getPart(id, partId, input, output);
+//                                client.close();
+//                            } catch (IOException e) {
+//                                e.printStackTrace();
+//                                throw new RuntimeException(e);
+//                            }
+//                        });
                     }
                 }
             }
@@ -189,7 +175,9 @@ public class Client {
         }
     }
 
-    private byte[] getPart(int id, int partId, DataInputStream input, DataOutputStream output) throws IOException {
+    private byte[] getPart(
+            int id, int partId, DataInputStream input, DataOutputStream output, FileContents fc
+    ) throws IOException {
         output.writeByte(GET);
         output.writeInt(id);
         output.writeInt(partId);
@@ -197,11 +185,13 @@ public class Client {
 
         logger.info("Getting the part");
 
-        byte[] result = new byte[PART_SIZE];
-        if (input.read(result) == -1) {
-            return null;
-        }
-        return result;
+        fc.writePart(partId, input);
+//
+//        byte[] result = new byte[PART_SIZE];
+//        if (input.read(result) == -1) {
+//            return null;
+//        }
+//        return result;
     }
 
 }

@@ -15,12 +15,10 @@ public class Tracker {
     public static final byte OTHER = 5;
     public static final Integer PORT = 8081;
     public static final int TIMEOUT = 60 * 1000;
-//    public static final int IP_SIZE = 4;
     public static final String CONFIG_FILE = "./configTracker";
 
     private static final Logger LOGGER = Logger.getLogger("TRACKER");
     private final TrackerState state = new TrackerState(CONFIG_FILE);
-    private final TrackerUtils trackerUtils = new TrackerUtils(this);
     private ServerSocket serverSocket;
     private ExecutorService threadPool = Executors.newCachedThreadPool();
 
@@ -35,60 +33,35 @@ public class Tracker {
     public void startTracker() throws IOException {
         DataOutputStream backup = new DataOutputStream(new FileOutputStream(CONFIG_FILE));
         serverSocket = new ServerSocket(PORT);
-        threadPool.submit(() -> {
-            while (!Thread.interrupted()) {
-                LOGGER.info("New loop");
-                try {
-                    Socket clientSocket = serverSocket.accept();
-                    LOGGER.info("Client accepted: " + clientSocket.toString());
-                    threadPool.submit((Runnable) () -> {
-                        try {
-                            processClient(clientSocket);
-                            clientSocket.close();
-                        } catch (IOException e) {
-                            e.printStackTrace();
-                            throw new RuntimeException(e);
-                        }
-                    });
-                } catch (IOException e) {
-                    LOGGER.info("Connection closed");
-                }
-            }
-
+        while (!Thread.interrupted()) {
+            LOGGER.info("New loop");
             try {
-                state.store(backup);
+                Socket clientSocket = serverSocket.accept();
+                LOGGER.info("Client accepted: " + clientSocket.toString());
+                threadPool.submit((Runnable) () -> {
+                    try {
+                        processClient(clientSocket);
+                        clientSocket.close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                        throw new RuntimeException(e);
+                    }
+                });
             } catch (IOException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
+                LOGGER.info("Connection closed");
             }
-        });
+        }
+
+        try {
+            state.store(backup);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        }
     }
 
 
     // tracker part
-
-    // executeList request
-    private void executeList(DataOutputStream output) throws IOException {
-        trackerUtils.executeList(output);
-    }
-
-    // executeUpload request
-    private void executeUpload(Socket clientSocket, DataInputStream input, DataOutputStream output) throws IOException {
-        // TODO: increment
-
-        trackerUtils.executeUpload(clientSocket, input, output);
-    }
-
-    // executeSources request
-    private void executeSources(DataInputStream input, DataOutputStream output) throws IOException {
-        // TODO: extract
-        trackerUtils.executeSources(input, output);
-    }
-
-    // executeUpdate request
-    private void executeUpdate(Socket clientSocket, DataInputStream input, DataOutputStream output) throws IOException {
-        trackerUtils.executeUpdate(clientSocket, input, output);
-    }
 
     // processing of client have come
     private void processClient(Socket clientSocket) throws IOException {
@@ -96,16 +69,16 @@ public class Tracker {
             try {
                 switch(input.readByte()) {
                     case LIST:
-                        trackerUtils.executeList(output);
+                        TrackerUtils.executeList(output, state);
                         break;
                     case UPLOAD:
-                        trackerUtils.executeUpload(clientSocket, input, output);
+                        TrackerUtils.executeUpload(clientSocket, input, output, state);
                         break;
                     case SOURCES:
-                        trackerUtils.executeSources(input, output);
+                        TrackerUtils.executeSources(input, output, state);
                         break;
                     case UPDATE:
-                        trackerUtils.executeUpdate(clientSocket, input, output);
+                        TrackerUtils.executeUpdate(clientSocket, input, output, state);
                         break;
                     default:
                         int id = input.readInt();
@@ -130,6 +103,7 @@ public class Tracker {
     public void stopTracker() throws IOException {
         serverSocket.close();
         threadPool.shutdown();
+        state.store(new DataOutputStream(new FileOutputStream(CONFIG_FILE)));
 /*
  Мы хотим записать список всех файлов, которые когда-либо регистрировались, в файл. Так что создаём поток
   */
