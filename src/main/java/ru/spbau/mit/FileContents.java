@@ -1,7 +1,11 @@
+package ru.spbau.mit;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,6 +19,7 @@ public class FileContents {
     public FileContents(String path, long size) throws IOException {
         this.path = path;
         parts = new boolean[(int) ((size + PART_SIZE - 1) / PART_SIZE)];
+        Files.createDirectories(Paths.get(path).getParent());
         ra = new RandomAccessFile(path, "rw");
     }
 

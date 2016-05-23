@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -7,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-public class Client {
+public class TorrentClientMain {
 
     // constants
     public static final byte STAT = 1;
@@ -15,7 +17,7 @@ public class Client {
     public static final String CONFIG_FILE = "/configClient";
     public static final String CURRENT_DIR = "./";
     public static final int IP_LEN = 4;
-    public static final int TIMEOUT = 3 * Tracker.TIMEOUT / 4;
+    public static final int TIMEOUT = 3 * TorrentTrackerMain.TIMEOUT / 4;
 
     private static final Logger LOGGER = Logger.getLogger("CLIENT");
     // thread pool
@@ -25,12 +27,12 @@ public class Client {
     private Boolean running = false;
     private ClientState state = null;
 
-    public Client(String path) {
-        state = path == null ? new ClientState(CURRENT_DIR + CONFIG_FILE) : new ClientState(path + CONFIG_FILE);
+    public TorrentClientMain(String path) {
+        state = path == null ? new ClientState(CURRENT_DIR/) : new ClientState(path);
     }
 
     public static void main(String[] args) throws IOException {
-        Client inner = new Client(CURRENT_DIR);
+        TorrentClientMain inner = new TorrentClientMain(CURRENT_DIR);
         //ClientState state = new ClientState(CURRENT_DIR + CONFIG_FILE);
 
         switch (args[0]) {
@@ -114,7 +116,7 @@ public class Client {
             try {
                 int fileId = fr.getId();
 
-                output.writeByte(Tracker.SOURCES);
+                output.writeByte(TorrentTrackerMain.SOURCES);
                 output.writeInt(fileId);
                 output.flush();
 

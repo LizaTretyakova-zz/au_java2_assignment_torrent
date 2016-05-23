@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -15,7 +17,7 @@ public final class Utils {
             String trackerAddr, BiConsumer<DataInputStream, DataOutputStream> job
     ) {
         try (
-                Socket client = new Socket(trackerAddr, Tracker.PORT);
+                Socket client = new Socket(trackerAddr, TorrentTrackerMain.PORT);
                 DataInputStream input = new DataInputStream(client.getInputStream());
                 DataOutputStream output = new DataOutputStream(client.getOutputStream());
         ) {

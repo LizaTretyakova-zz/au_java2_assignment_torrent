@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.net.InetAddress;
 
 // client description: id, IP, port, time of last executeUpdate

@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 // a description of a file we will download in a time: id & tracker address
 public class FileRequest {
     private int id;

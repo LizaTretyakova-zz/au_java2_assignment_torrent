@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -70,7 +72,7 @@ public final class TrackerUtils {
         for (ClientDescriptor seed : fileSeeds) {
             byte[] addrBytes = seed.getAddr().getAddress();
             output.write(addrBytes);
-            output.writeByte(Tracker.PORT);
+            output.writeByte(TorrentTrackerMain.PORT);
         }
         output.flush();
     }

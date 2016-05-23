@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
@@ -71,7 +73,7 @@ public class TrackerState {
              it.hasNext();
         ) {
             ClientDescriptor seed = it.next();
-            if (System.currentTimeMillis() - seed.getLastUpdated() > Tracker.TIMEOUT) {
+            if (System.currentTimeMillis() - seed.getLastUpdated() > TorrentTrackerMain.TIMEOUT) {
                 it.remove();
             }
         }

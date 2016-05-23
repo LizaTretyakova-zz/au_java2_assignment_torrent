@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -7,7 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
-public class Tracker {
+public class TorrentTrackerMain {
 
     // constants
     public static final byte LIST = 1;
@@ -25,11 +27,11 @@ public class Tracker {
     private ExecutorService threadPool = Executors.newCachedThreadPool();
 
 
-    public Tracker() {
+    public TorrentTrackerMain() {
     }
 
     public static void main(String[] args) throws IOException {
-        new Tracker().startTracker();
+        new TorrentTrackerMain().startTracker();
     }
 
     // wake up tracker
@@ -41,10 +43,11 @@ public class Tracker {
                 LOGGER.info("New loop");
                 try {
                     Socket clientSocket = serverSocket.accept();
-                    LOGGER.info("Client accepted: " + clientSocket.toString());
+                    LOGGER.info("ru.spbau.mit.TorrentClientMain accepted: " + clientSocket.toString());
                     threadPool.submit((Runnable) () -> {
                         try {
                             processClient(clientSocket);
+                            LOGGER.info("CLIENT PROCESSED");
                             clientSocket.close();
                         } catch (IOException e) {
                             e.printStackTrace();

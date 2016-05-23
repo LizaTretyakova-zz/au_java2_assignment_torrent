@@ -3,6 +3,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import static junit.framework.Assert.assertTrue;
 import org.junit.rules.TemporaryFolder;
+import ru.spbau.mit.ClientConsoleUtils;
+import ru.spbau.mit.TorrentClientMain;
+import ru.spbau.mit.TorrentTrackerMain;
 
 import java.io.DataOutputStream;
 import java.io.File;
@@ -13,10 +16,12 @@ import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 
-public class ClientTest {
+public class TorrentClientMainTest {
 
     private static final String TRACKER_ADDR = "127.0.0.1";
     private static final int MAGIC_WAIT_TIME = 5;
+    private static final String SUBDIR = "client";
+    private static final String FILE = "file";
     private static final byte[] TEXT =
             (" Forms FORM-29827281-12:\n" +
                     "Test Assessment Report\n" +
@@ -109,14 +114,29 @@ public class ClientTest {
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private Tracker tracker = null;
-    private Client client1 = null;
-    private Client client2 = null;
+    private TorrentTrackerMain tracker = null;
+    private TorrentClientMain client1 = null;
+    private TorrentClientMain client2 = null;
     private File file = null;
+    private File trackerFolder = null;
+    private File client1Folder = null;
+    private File client2Folder = null;
+//    private File client1Config = null;
+//    private File client2Config = null;
 
     private void fillTempDir() throws IOException {
         try {
-            file = folder.newFile();
+//            file = folder.newFile();
+            trackerFolder = folder.newFolder("tracker");
+            file = Files.createFile(Paths.get(trackerFolder.getPath(), FILE)).toFile();
+            client1Folder = folder.newFolder(SUBDIR + "1");
+            client2Folder = folder.newFolder(SUBDIR + "2");
+//            client1Config = Files.createFile(
+//                    Paths.get(client1Folder.getPath(), TorrentClientMain.CONFIG_FILE)
+//            ).toFile();
+//            client2Config = Files.createFile(
+//                    Paths.get(client2Folder.getPath(), TorrentClientMain.CONFIG_FILE)
+//            ).toFile();
         } catch (IOException e) {
             throw new RuntimeException(e.getMessage(), e);
         }
@@ -126,18 +146,20 @@ public class ClientTest {
     @org.junit.Before
     public void setUp() throws Exception {
         fillTempDir();
-        Files.deleteIfExists(Paths.get(Tracker.CONFIG_FILE));
-        Files.deleteIfExists(Paths.get("./" + Client.CONFIG_FILE));
-        Files.deleteIfExists(Paths.get(folder.getRoot().getPath() + Client.CONFIG_FILE));
-        tracker = new Tracker();
+//        Files.deleteIfExists(Paths.get(TorrentTrackerMain.CONFIG_FILE));
+//        Files.deleteIfExists(Paths.get("./" + TorrentClientMain.CONFIG_FILE));
+//        Files.deleteIfExists(Paths.get(folder.getRoot().getPath() + TorrentClientMain.CONFIG_FILE));
+        tracker = new TorrentTrackerMain();
         tracker.startTracker();
-        client1 = new Client(folder.getRoot().getPath());
-        client2 = new Client("./");
+        client1 = new TorrentClientMain(client1Folder.getPath());
+        client2 = new TorrentClientMain(client2Folder.getPath());
+//        client1 = new TorrentClientMain(folder.getRoot().getPath());
+//        client2 = new TorrentClientMain("./");
     }
 
     @org.junit.After
     public void tearDown() throws Exception {
-        Files.deleteIfExists(Paths.get(Tracker.CONFIG_FILE));
+        Files.deleteIfExists(Paths.get(TorrentTrackerMain.CONFIG_FILE));
 
         tracker.stopTracker();
         client1.stop();

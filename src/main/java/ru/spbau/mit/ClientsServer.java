@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -25,10 +27,10 @@ class ClientsServer {
                 client = server.accept();
                 input = new DataInputStream(client.getInputStream());
                 output = new DataOutputStream(client.getOutputStream());
-                state = new ClientState(Client.CURRENT_DIR);
+                state = new ClientState(TorrentClientMain.CURRENT_DIR);
 
                 switch (input.readByte()) {
-                    case Client.STAT:
+                    case TorrentClientMain.STAT:
                         threadPool.submit((Runnable) () -> {
                             try {
                                 stat(input, output, state);
@@ -39,7 +41,7 @@ class ClientsServer {
                             }
                         });
                         break;
-                    case Client.GET:
+                    case TorrentClientMain.GET:
                         threadPool.submit((Runnable) () -> {
                             try {
                                 get(input, output, state);

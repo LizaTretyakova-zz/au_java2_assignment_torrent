@@ -1,3 +1,5 @@
+package ru.spbau.mit;
+
 // file description: id, name and size
 public class FileDescr {
 
