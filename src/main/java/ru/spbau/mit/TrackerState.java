@@ -24,7 +24,7 @@ public class TrackerState {
     private int cnt = 0;
 
     public TrackerState(String path) {
-        if (!Files.exists(Paths.get(path))) {
+        if (!Files.exists(Paths.get(path, TorrentTrackerMain.CONFIG_FILE))) {
             LOGGER.info("Starting from scratch");
             return;
         }

@@ -5,6 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
@@ -19,25 +20,32 @@ public class TorrentTrackerMain {
     public static final byte OTHER = 5;
     public static final Integer PORT = 8081;
     public static final int TIMEOUT = 60 * 1000;
-    public static final String CONFIG_FILE = "./configTracker";
+    public static final String CONFIG_FILE = "configTracker";
+    public static final String CURRENT_DIR = ".";
 
     private static final Logger LOGGER = Logger.getLogger("TRACKER");
-    private final TrackerState state = new TrackerState(CONFIG_FILE);
+    private TrackerState state;
     private ServerSocket serverSocket;
     private ExecutorService threadPool = Executors.newCachedThreadPool();
 
 
-    public TorrentTrackerMain() {
+    public TorrentTrackerMain(String path) {
+        state = new TrackerState(path);
     }
 
     public static void main(String[] args) throws IOException {
-        new TorrentTrackerMain().startTracker();
+        new TorrentTrackerMain(Paths.get(CURRENT_DIR, CONFIG_FILE).toString()).startTracker();
     }
 
     // wake up tracker
     public void startTracker() throws IOException {
         DataOutputStream backup = new DataOutputStream(new FileOutputStream(CONFIG_FILE));
         serverSocket = new ServerSocket(PORT);
+        LOGGER.info(serverSocket.getLocalSocketAddress().toString());
+        LOGGER.info(serverSocket.getInetAddress().getCanonicalHostName());
+        LOGGER.info(serverSocket.getInetAddress().getHostAddress());
+        LOGGER.info(serverSocket.getInetAddress().getHostName());
+        LOGGER.info(serverSocket.getInetAddress().toString());
         threadPool.submit((Runnable) () -> {
             while (!Thread.interrupted()) {
                 LOGGER.info("New loop");

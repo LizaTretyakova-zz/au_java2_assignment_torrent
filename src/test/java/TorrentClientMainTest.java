@@ -146,10 +146,10 @@ public class TorrentClientMainTest {
     @org.junit.Before
     public void setUp() throws Exception {
         fillTempDir();
-//        Files.deleteIfExists(Paths.get(TorrentTrackerMain.CONFIG_FILE));
-//        Files.deleteIfExists(Paths.get("./" + TorrentClientMain.CONFIG_FILE));
+        Files.deleteIfExists(Paths.get(TorrentTrackerMain.CONFIG_FILE));
+        Files.deleteIfExists(Paths.get(TorrentClientMain.CONFIG_FILE));
 //        Files.deleteIfExists(Paths.get(folder.getRoot().getPath() + TorrentClientMain.CONFIG_FILE));
-        tracker = new TorrentTrackerMain();
+        tracker = new TorrentTrackerMain(trackerFolder.getPath());
         tracker.startTracker();
         client1 = new TorrentClientMain(client1Folder.getPath());
         client2 = new TorrentClientMain(client2Folder.getPath());

@@ -14,8 +14,8 @@ public class TorrentClientMain {
     // constants
     public static final byte STAT = 1;
     public static final byte GET = 2;
-    public static final String CONFIG_FILE = "/configClient";
-    public static final String CURRENT_DIR = "./";
+    public static final String CONFIG_FILE = "configClient";
+    public static final String CURRENT_DIR = ".";
     public static final int IP_LEN = 4;
     public static final int TIMEOUT = 3 * TorrentTrackerMain.TIMEOUT / 4;
 
@@ -28,7 +28,7 @@ public class TorrentClientMain {
     private ClientState state = null;
 
     public TorrentClientMain(String path) {
-        state = path == null ? new ClientState(CURRENT_DIR/) : new ClientState(path);
+        state = path == null ? new ClientState(CURRENT_DIR) : new ClientState(path);
     }
 
     public static void main(String[] args) throws IOException {
