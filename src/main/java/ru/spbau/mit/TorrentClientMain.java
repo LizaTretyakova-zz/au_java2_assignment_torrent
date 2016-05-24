@@ -148,11 +148,11 @@ public class TorrentClientMain {
                         LOGGER.warning("Wrong addr format in sources request");
                         return;
                     }
-                    LOGGER.warning("TORRENT_CLIENT_MAIN got addr: " + InetAddress.getByAddress(addr).toString());
+                    LOGGER.warning("TORRENT_CLIENT_MAIN got addr: " + InetAddress.getByAddress(addr).getHostAddress());
                     port = input.readUnsignedShort();
                     LOGGER.warning("TORRENT_CLIENT_MAIN: port=" + Integer.toString(port));
                     LOGGER.info("Downloading: try to get the file parts");
-                    tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
+                    tryToGet(fileId, InetAddress.getByAddress(addr).getHostAddress(), port);
                     LOGGER.info("Downloading: proceeding to the next in the SOURCES");
                 }
             } catch (Exception e) {
@@ -196,6 +196,7 @@ public class TorrentClientMain {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            LOGGER.warning("TRY_TO_GET exception");
             throw new RuntimeException(e);
         }
 

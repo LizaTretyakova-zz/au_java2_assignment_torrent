@@ -39,9 +39,11 @@ public final class TrackerUtils {
 //        }
 
         LOGGER.info("Upload handler -- read data: name=" + name + " size=" + Long.toString(size));
-
+        // how to distinguish one client from another if they all seem to have the same address?
         InetAddress clientAddr = clientSocket.getInetAddress();
+        LOGGER.warning("EXECUTE_UPLOAD: clientSocket.address=" + clientAddr.toString());
         int port = clientSocket.getPort();
+        LOGGER.warning("EXECUTE_UPLOAD: clientSocket.port=" + Integer.toString(port));
         ClientDescriptor client = state.getClients().get(clientAddr);
         if (client != null) {
             client.setLastUpdated(System.currentTimeMillis());

@@ -85,27 +85,27 @@ public class TorrentTrackerMain {
             try {
                 switch (input.readByte()) {
                     case LIST:
-                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "list");
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "list port=" + clientSocket.getPort());
                         TrackerUtils.executeList(output, state);
                         LOGGER.warning("exit TORRENT_TRACKER_MAIN" + "list");
                         break;
                     case UPLOAD:
-                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "upload");
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "upload port=" + clientSocket.getPort());
                         TrackerUtils.executeUpload(clientSocket, input, output, state);
                         LOGGER.warning("exit TORRENT_TRACKER_MAIN" + "sources");
                         break;
                     case SOURCES:
-                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "sources");
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "sources port=" + clientSocket.getPort());
                         TrackerUtils.executeSources(input, output, state);
                         LOGGER.warning("exit TORRENT_TRACKER_MAIN" + "sources");
                         break;
                     case UPDATE:
-                        LOGGER.warning("enter TORRENT_TRACKER_MAIN update");
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN update port=" + clientSocket.getPort());
                         TrackerUtils.executeUpdate(clientSocket, input, output, state);
                         LOGGER.warning("exit TORRENT_TRACKER_MAIN update");
                         break;
                     default:
-                        LOGGER.warning("enter TORRENT_TRACKER_MAIN default");
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN default port=" + clientSocket.getPort());
                         int id = input.readInt();
                         for (FileDescr file : state.getFiles()) {
                             if (file.getId() == id) {

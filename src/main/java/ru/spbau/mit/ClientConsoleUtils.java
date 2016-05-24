@@ -82,6 +82,10 @@ public final class ClientConsoleUtils {
         int id = Integer.parseInt(fileId);
         state.getWishList().add(new FileRequest(id));
 
+        // for some unimaginable reasons
+        // I need to know the size and the path of the file
+        // for that reason I want to ask tracker to send me them
+        // and that's exactly the reason I
         Utils.tryConnectWithResourcesAndDoJob(trackerAddress, (input, output) -> {
             try {
                 output.writeByte(TorrentTrackerMain.OTHER);
