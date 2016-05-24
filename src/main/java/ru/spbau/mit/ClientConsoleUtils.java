@@ -90,10 +90,9 @@ public final class ClientConsoleUtils {
 
                 long size = input.readLong();
                 String path = input.readUTF();
-                // String name = Paths.get(path).getFileName().toString();
+                String name = Paths.get(path).getFileName().toString();
                 state.getOwnedFiles().put(Integer.parseInt(fileId), new FileContents(
-                        // Paths.get(state.getDownloadsPath(), name).toString(),
-                        path,
+                        Paths.get(state.getDownloadsPath(), name).toString(),
                         size));
             } catch (Exception e) {
                 throw new RuntimeException(e);
