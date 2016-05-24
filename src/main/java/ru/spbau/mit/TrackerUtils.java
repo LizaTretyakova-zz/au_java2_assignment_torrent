@@ -72,7 +72,8 @@ public final class TrackerUtils {
         for (ClientDescriptor seed : fileSeeds) {
             byte[] addrBytes = seed.getAddr().getAddress();
             output.write(addrBytes);
-            output.writeByte(TorrentTrackerMain.PORT);
+            // output.writeShort(TorrentTrackerMain.PORT);
+            output.writeShort(seed.getPort());
         }
         output.flush();
     }

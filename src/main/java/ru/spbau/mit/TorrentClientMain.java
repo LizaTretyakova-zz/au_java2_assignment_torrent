@@ -64,23 +64,37 @@ public class TorrentClientMain {
 
     // run implementation
     public void run(String trackerAddr) throws IOException {
+        LOGGER.warning("enter TORRENT_CLIENT_MAIN" + "run");
         synchronized (this) {
+            LOGGER.warning("TORRENT_CLIENT_MAIN: start sharing");
             // start sharing
+
             clientsServer = new ClientsServer();
             clientsServer.start();
+
+            LOGGER.warning("TORRENT_CLIENT_MAIN: start downloading");
             // start downloading
             for (FileRequest fr : state.getWishList()) {
                 threadPool.submit((Runnable) () -> {
+                    LOGGER.warning("enter TORRENT_CLIENT_MAIN lambda" + "threadPool_task");
+
                     while (!fullyDownloaded(fr)) {
+                        LOGGER.config("TORRENT_CLIENT_MAIN: still not fully downloaded");
+
                         processFileRequest(fr, trackerAddr);
                     }
+
+                    LOGGER.warning("exit TORRENT_CLIENT_MAIN lambda" + "threadPool_task");
                 });
             }
+
+            LOGGER.warning("TORRENT_CLIENT_MAIN: start notifying tracker");
             // start notifying tracker
             updater = new Updater(trackerAddr, state);
 
             running = true;
         }
+        LOGGER.warning("exit TORRENT_CLIENT_MAIN" + "run");
     }
 
     public void stop() throws IOException, InterruptedException {
@@ -112,13 +126,19 @@ public class TorrentClientMain {
     }
 
     private void processFileRequest(FileRequest fr, String trackerAddr) {
+        LOGGER.warning("enter TORRENT_CLIENT_MAIN" + "processFileRequest");
+
         Utils.tryConnectWithResourcesAndDoJob(trackerAddr, (input, output) -> {
             try {
+                LOGGER.warning("TORRENT_CLIENT_MAIN: try to get file");
+
                 int fileId = fr.getId();
+                LOGGER.warning("TORRENT_CLIENT_MAIN: fileId=" + Integer.toString(fileId));
 
                 output.writeByte(TorrentTrackerMain.SOURCES);
                 output.writeInt(fileId);
                 output.flush();
+                LOGGER.warning("TORRENT_CLIENT_MAIN: SOURCES code and fileId outputted to tracker");
 
                 int count = input.readInt();
                 for (int i = 0; i < count; i++) {
@@ -128,7 +148,9 @@ public class TorrentClientMain {
                         LOGGER.warning("Wrong addr format in sources request");
                         return;
                     }
-                    port = input.readInt();
+                    LOGGER.warning("TORRENT_CLIENT_MAIN got addr: " + InetAddress.getByAddress(addr).toString());
+                    port = input.readUnsignedShort();
+                    LOGGER.warning("TORRENT_CLIENT_MAIN: port=" + Integer.toString(port));
                     LOGGER.info("Downloading: try to get the file parts");
                     tryToGet(fileId, InetAddress.getByAddress(addr).toString(), port);
                     LOGGER.info("Downloading: proceeding to the next in the SOURCES");
@@ -137,36 +159,47 @@ public class TorrentClientMain {
                 throw new RuntimeException(e);
             }
         });
+        LOGGER.warning("exit TORRENT_CLIENT_MAIN" + "processFileRequest");
     }
 
     private void tryToGet(int id, String hostAddr, int port) {
+        LOGGER.warning("enter TORRENT_CLIENT_MAIN" + "tryToGet");
+
         Socket client;
         DataInputStream input;
         DataOutputStream output;
         try {
+            LOGGER.warning("TRY_TO_GET: trying to open socket & Co");
             client = new Socket(hostAddr, port);
             input = new DataInputStream(client.getInputStream());
             output = new DataOutputStream(client.getOutputStream());
 
+            LOGGER.warning("TRY_TO_GET: trying to write STAT code and id to tracker");
             output.writeByte(STAT);
             output.writeInt(id);
             output.flush();
 
+            LOGGER.warning("TRY_TO_GET: after outputting trying to read");
             int count = input.readInt();
             LOGGER.info("In tryToGet: count=" + Integer.toString(count));
+
             synchronized (this) {
+                LOGGER.warning("enter TRY_TO_GET" + "for loop looking for the missing parts");
                 for (int i = 0; i < count; i++) {
                     int partId = input.readInt();
                     if (!state.getOwnedFiles().get(id).isPartDownloaded(partId)) {
-                        LOGGER.info("In tryToGet: matched a part");
+                        LOGGER.info("TRY_TO_GET: matched a part!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                         getPart(id, partId, input, output, state.getOwnedFiles().get(id));
                     }
                 }
+                LOGGER.warning("exit TRY_TO_GET" + "for loop looking for the missing parts");
             }
         } catch (IOException e) {
             e.printStackTrace();
             throw new RuntimeException(e);
         }
+
+        LOGGER.warning("exit TORRENT_CLIENT_MAIN" + "tryToGet");
     }
 
     private void getPart(

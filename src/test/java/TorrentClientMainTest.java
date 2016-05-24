@@ -14,10 +14,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 
 public class TorrentClientMainTest {
 
+    private static final Logger LOGGER = Logger.getLogger("TEST");
     private static final String TRACKER_ADDR = "127.0.0.1";
     private static final int MAGIC_WAIT_TIME = 5;
     private static final String SUBDIR = "client";
@@ -208,7 +210,10 @@ public class TorrentClientMainTest {
 
         TimeUnit.SECONDS.sleep(MAGIC_WAIT_TIME);
 
-
+        LOGGER.info("CLIENT1: " + client1.getFileById(id).getPath());
+        LOGGER.info("CLIENT2: " + client2.getFileById(id).getPath());
+//        System.out.println(client1.getFileById(id).getPath());
+//        System.out.println(client2.getFileById(id).getPath());
         assertTrue(FileUtils.contentEquals(
                 new File(client1.getFileById(id).getPath()), new File(client2.getFileById(id).getPath())
         ));

@@ -85,18 +85,27 @@ public class TorrentTrackerMain {
             try {
                 switch (input.readByte()) {
                     case LIST:
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "list");
                         TrackerUtils.executeList(output, state);
+                        LOGGER.warning("exit TORRENT_TRACKER_MAIN" + "list");
                         break;
                     case UPLOAD:
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "upload");
                         TrackerUtils.executeUpload(clientSocket, input, output, state);
+                        LOGGER.warning("exit TORRENT_TRACKER_MAIN" + "sources");
                         break;
                     case SOURCES:
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN" + "sources");
                         TrackerUtils.executeSources(input, output, state);
+                        LOGGER.warning("exit TORRENT_TRACKER_MAIN" + "sources");
                         break;
                     case UPDATE:
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN update");
                         TrackerUtils.executeUpdate(clientSocket, input, output, state);
+                        LOGGER.warning("exit TORRENT_TRACKER_MAIN update");
                         break;
                     default:
+                        LOGGER.warning("enter TORRENT_TRACKER_MAIN default");
                         int id = input.readInt();
                         for (FileDescr file : state.getFiles()) {
                             if (file.getId() == id) {
@@ -107,6 +116,7 @@ public class TorrentTrackerMain {
                             }
                         }
                         output.flush();
+                        LOGGER.warning("exit TORRENT_TRACKER_MAIN default");
                         break;
                 }
             } catch (Exception e) {
