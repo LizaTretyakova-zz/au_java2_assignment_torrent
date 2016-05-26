@@ -64,7 +64,7 @@ public class TorrentClientMain {
 
     // run implementation
     public void run(String trackerAddr) throws IOException {
-        LOGGER.warning("enter TORRENT_CLIENT_MAIN" + "run");
+        LOGGER.warning("enter TORRENT_CLIENT_MAIN" + " run");
         synchronized (this) {
             LOGGER.warning("TORRENT_CLIENT_MAIN: start sharing");
             // start sharing
@@ -76,7 +76,7 @@ public class TorrentClientMain {
             // start downloading
             for (FileRequest fr : state.getWishList()) {
                 threadPool.submit((Runnable) () -> {
-                    LOGGER.warning("enter TORRENT_CLIENT_MAIN lambda" + "threadPool_task");
+                    LOGGER.warning("enter TORRENT_CLIENT_MAIN lambda" + " threadPool_task");
 
                     while (!fullyDownloaded(fr)) {
                         LOGGER.config("TORRENT_CLIENT_MAIN: still not fully downloaded");
@@ -84,17 +84,18 @@ public class TorrentClientMain {
                         processFileRequest(fr, trackerAddr);
                     }
 
-                    LOGGER.warning("exit TORRENT_CLIENT_MAIN lambda" + "threadPool_task");
+                    LOGGER.warning("exit TORRENT_CLIENT_MAIN lambda" + " threadPool_task");
                 });
             }
 
-            LOGGER.warning("TORRENT_CLIENT_MAIN: start notifying tracker");
+            LOGGER.warning("TORRENT_CLIENT_MAIN: start notifying tracker, port=" +
+                    Integer.toString(clientsServer.getPort()));
             // start notifying tracker
-            updater = new Updater(trackerAddr, state);
+            updater = new Updater(trackerAddr, state, clientsServer.getPort());
 
             running = true;
         }
-        LOGGER.warning("exit TORRENT_CLIENT_MAIN" + "run");
+        LOGGER.warning("exit TORRENT_CLIENT_MAIN" + " run");
     }
 
     public void stop() throws IOException, InterruptedException {
@@ -141,6 +142,7 @@ public class TorrentClientMain {
                 LOGGER.warning("TORRENT_CLIENT_MAIN: SOURCES code and fileId outputted to tracker");
 
                 int count = input.readInt();
+                LOGGER.warning("TORRENT_CLIENT_MAIN: read count " + Integer.toString(count));
                 for (int i = 0; i < count; i++) {
                     byte[] addr = new byte[IP_LEN];
                     int port;
@@ -156,6 +158,7 @@ public class TorrentClientMain {
                     LOGGER.info("Downloading: proceeding to the next in the SOURCES");
                 }
             } catch (Exception e) {
+                LOGGER.warning("TORRENT_CLIENT_MAIN: exception in reading SOURCES");
                 throw new RuntimeException(e);
             }
         });
@@ -169,7 +172,8 @@ public class TorrentClientMain {
         DataInputStream input;
         DataOutputStream output;
         try {
-            LOGGER.warning("TRY_TO_GET: trying to open socket & Co");
+            LOGGER.warning("TRY_TO_GET: trying to open socket on hostAddr=" +
+                    hostAddr + " port=" + Integer.toString(port));
             client = new Socket(hostAddr, port);
             input = new DataInputStream(client.getInputStream());
             output = new DataOutputStream(client.getOutputStream());

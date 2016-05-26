@@ -19,7 +19,7 @@ public class TrackerState {
     // map: file_id ---> clients holding it
     private final HashMap<Integer, List<ClientDescriptor>> seeds = new HashMap<>();
     // map: IP ---> client
-    private final HashMap<InetAddress, ClientDescriptor> clients = new HashMap<>();
+    // private final HashMap<InetAddress, ClientDescriptor> clients = new HashMap<>();
     private final List<FileDescr> files = new ArrayList<>();
     private int cnt = 0;
 
@@ -50,9 +50,9 @@ public class TrackerState {
         return seeds;
     }
 
-    public synchronized HashMap<InetAddress, ClientDescriptor> getClients() {
-        return clients;
-    }
+//    public synchronized HashMap<InetAddress, ClientDescriptor> getClients() {
+//        return clients;
+//    }
 
     public synchronized List<FileDescr> getFiles() {
         return files;
@@ -69,7 +69,12 @@ public class TrackerState {
     }
 
     public synchronized void updateSeeds(int id) {
-        for (Iterator<ClientDescriptor> it = seeds.get(id).iterator();
+        List<ClientDescriptor> fileSeeds = seeds.get(id);
+        if(fileSeeds == null) {
+            return;
+        }
+
+        for (Iterator<ClientDescriptor> it = fileSeeds.iterator();
              it.hasNext();
         ) {
             ClientDescriptor seed = it.next();

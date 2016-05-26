@@ -67,6 +67,7 @@ class ClientsServer {
         LOGGER.info("Starting clientsServer");
 
         server = new ServerSocket(0);
+        LOGGER.warning("clientsServer socket port=" + Integer.toString(server.getLocalPort()));
         threadPool.submit(processClient);
 
         LOGGER.info("ClientsServer started");
@@ -119,5 +120,12 @@ class ClientsServer {
         fileContents.readPart(partId, output);
 
         LOGGER.info("File contents sent");
+    }
+
+    public int getPort() {
+        if(server == null) {
+            throw new RuntimeException("Accessing server before starting server");
+        }
+        return server.getLocalPort();
     }
 }

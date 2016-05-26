@@ -16,7 +16,7 @@ class Updater {
 //    private DataInputStream input;
 //    private DataOutputStream output;
 
-    Updater(String trackerAddr, ClientState state) {
+    Updater(String trackerAddr, ClientState state, int port) {
 //        try {
 //
             timer.schedule(new TimerTask() {
@@ -32,7 +32,7 @@ class Updater {
 //                    Utils.tryConnectWithResourcesAndDoJob(trackerAddr, (input, output) -> {
 //                        try {
                         output.writeByte(TorrentTrackerMain.UPDATE);
-                        output.writeInt(client.getPort());
+                        output.writeInt(port);
                         output.writeInt(state.getOwnedFiles().size());
                         for (Map.Entry entry : state.getOwnedFiles().entrySet()) {
                             output.writeInt((int) entry.getKey());
